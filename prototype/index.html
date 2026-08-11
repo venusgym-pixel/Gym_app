@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fitwell — Member App Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/board.css">
+<link rel="stylesheet" href="css/device.css">
+</head>
+<body>
+
+<header class="board-head">
+  <div>
+    <div class="board-eyebrow">FITWELL · MEMBER APP · 390×844</div>
+    <h1 class="board-title">Every screen, one board</h1>
+    <p class="board-sub">Auth and onboarding, check-in, renewal, workout logging and progress — warm-dark theme, Archivo type. Steppers, tabs, keypad and the rest timer are live in place.</p>
+  </div>
+  <div class="board-modes" role="group" aria-label="View mode">
+    <button class="board-mode is-on" data-mode="board" type="button">Board</button>
+    <button class="board-mode" data-mode="flow" type="button">Flow</button>
+  </div>
+</header>
+
+<!-- Board view: all 19 screens laid out on one canvas -->
+<main id="board" class="board"></main>
+
+<!-- Flow view: one device, walk the journey -->
+<section id="flow" class="flow" hidden>
+  <nav class="flow-rail" id="flow-rail" aria-label="Screens"></nav>
+  <div class="flow-stage">
+    <div id="flow-device"></div>
+    <div class="flow-meta">
+      <span class="gid" id="flow-id">S-01</span>
+      <span class="gname" id="flow-name">Splash</span>
+    </div>
+    <div class="flow-nav">
+      <button type="button" data-flow="prev">← Previous</button>
+      <button type="button" data-flow="next">Next →</button>
+    </div>
+  </div>
+</section>
+
+<script src="js/state.js"></script>
+<script src="js/frame.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,544 @@
+/* ============================================================================
+   Device frame + app primitives.
+
+   The frame is a vanilla port of ios-frame.jsx (IOSDevice / IOSStatusBar /
+   home indicator) — 402×874, r48, dynamic island, no assets, no deps.
+
+   Below it, the recurring patterns of the member app are named once here so
+   the screen markup stays about content rather than repeating a dozen
+   identical inline style strings. Each class carries the common value; the
+   screens override with a plain inline declaration where they differ.
+
+   Deliberately NOT custom properties: --pad/--fs on a parent inherit into
+   every descendant that reads the same name, so a screen's own padding would
+   silently become the padding of every .card and .seg-opt inside it.
+   ========================================================================= */
+
+/* ── device frame ───────────────────────────────────────────────────────── */
+
+.ios {
+  width: 402px;
+  height: 874px;
+  border-radius: 48px;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  box-shadow: 0 40px 80px rgba(0, 0, 0, .18), 0 0 0 1px rgba(0, 0, 0, .12);
+  font-family: -apple-system, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  flex: none;
+}
+
+.ios-island {
+  position: absolute;
+  top: 11px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 126px;
+  height: 37px;
+  border-radius: 24px;
+  background: #000;
+  z-index: 50;
+}
+
+.ios-status {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 10;
+  display: flex;
+  gap: 154px;
+  align-items: center;
+  justify-content: center;
+  padding: 21px 24px 19px;
+  width: 100%;
+}
+
+.ios-status > div {
+  flex: 1;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-status .ios-time {
+  font-family: -apple-system, "SF Pro", system-ui;
+  font-weight: 590;
+  font-size: 17px;
+  line-height: 22px;
+  color: #fff;
+  padding-top: 1.5px;
+}
+
+.ios-status .ios-icons { gap: 7px; padding-top: 1px; padding-right: 1px; }
+
+.ios-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ios-scroll { flex: 1; overflow: auto; }
+
+.ios-home {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 60;
+  height: 34px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  padding-bottom: 8px;
+  pointer-events: none;
+}
+
+.ios-home span {
+  width: 139px;
+  height: 5px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, .7);
+}
+
+/* ── screen shell ───────────────────────────────────────────────────────── */
+
+.scr {
+  height: 874px;
+  padding: 80px 24px 40px;
+  background: var(--app-bg);
+  color: var(--app-ink);
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+}
+
+.scr--scroll { overflow: auto; }
+.scr--center { align-items: center; text-align: center; }
+.scr--deep   { background: var(--app-bg-deep); }
+.scr--flush  { padding: 0; position: relative; }
+.scr--tabbed { height: auto; min-height: 100%; }
+
+/* ── type ───────────────────────────────────────────────────────────────── */
+
+.head {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-size: 28px;
+  line-height: 1.14;
+}
+
+.num {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-size: 26px;
+  line-height: 1;
+}
+
+.sub    { font-size: 13.5px; color: var(--app-ink-55); }
+.muted  { font-size: 12.5px; color: var(--app-ink-50); }
+.hint   { font-size: 11.5px; color: var(--app-ink-45); }
+.good   { color: var(--app-good); }
+.accent { color: var(--app-accent); }
+
+.kicker {
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--app-good);
+}
+
+.kicker--muted { color: var(--app-ink-50); }
+
+.label {
+  font-size: 11.5px;
+  color: var(--app-ink-50);
+  margin-bottom: 7px;
+}
+
+.back {
+  font-size: 13px;
+  color: var(--app-ink-55);
+  cursor: pointer;
+}
+
+.link {
+  font-size: 12.5px;
+  color: var(--app-accent);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ── surfaces ───────────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--app-surface);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+}
+
+.card--sm  { border-radius: var(--radius-md); }
+.card--good { background: var(--app-good-soft-2); }
+.card--accent { background: var(--app-accent-soft); }
+
+.streak {
+  background: var(--app-streak);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+.streak-orb {
+  position: absolute;
+  right: -30px;
+  top: -30px;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .09);
+}
+
+/* ── controls ───────────────────────────────────────────────────────────── */
+
+.cta {
+  background: var(--app-accent);
+  color: var(--app-accent-ink);
+  border-radius: 999px;
+  padding: 16px;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-size: 16px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cta--push { margin-top: auto; }
+.cta--block { width: 100%; }
+
+.pill {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  padding: 15px 20px;
+  font-size: 15px;
+}
+
+.pill--row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seg {
+  display: flex;
+  gap: 4px;
+  background: var(--app-surface);
+  border-radius: 999px;
+  padding: 4px;
+}
+
+.seg-opt {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--app-ink-60);
+  transition: background .12s, color .12s;
+}
+
+.seg-opt.is-on {
+  background: var(--app-accent);
+  color: var(--app-accent-ink);
+}
+
+.chip {
+  font: 600 10.5px var(--font-body);
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: var(--app-good-soft-2);
+  color: var(--app-good);
+  white-space: nowrap;
+}
+
+.chip--warn {
+  background: var(--app-accent-soft-2);
+  color: var(--app-accent);
+}
+
+.stepper {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--app-fill);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: background .12s;
+}
+
+.stepper:hover { background: rgba(249, 244, 237, .18); }
+.stepper:active { background: rgba(249, 244, 237, .26); }
+
+.iconbtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border-strong);
+  display: grid;
+  place-items: center;
+  position: relative;
+  flex: none;
+}
+
+.avatar {
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font: 600 15px var(--font-body);
+  flex: none;
+}
+
+.rowline {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--app-hairline);
+  font-size: 13.5px;
+}
+
+.rowline:last-child { border-bottom: 0; }
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(249, 244, 237, .12);
+  overflow: hidden;
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--app-accent);
+}
+
+/* ── bottom tab bar ─────────────────────────────────────────────────────── */
+
+.tabbar {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 96px;
+  background: var(--app-bg-tabbar);
+  border-top: 1px solid var(--app-hairline);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 22px 0;
+}
+
+.tabbar span {
+  width: 56px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--app-ink-45);
+}
+
+.tabbar span.is-on { color: var(--app-accent); }
+
+.tabbar-fab {
+  width: 64px;
+  height: 64px;
+  margin-top: -30px;
+  border-radius: 999px;
+  background: var(--app-accent);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 8px 24px rgba(198, 113, 57, .45);
+  cursor: pointer;
+}
+
+/* ── scanner ────────────────────────────────────────────────────────────── */
+
+.viewport {
+  margin: 44px auto 0;
+  width: 268px;
+  height: 268px;
+  position: relative;
+  border-radius: var(--radius-lg);
+  background: var(--app-surface-2);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.viewport i {
+  position: absolute;
+  width: 52px;
+  height: 52px;
+  border: 0 solid var(--app-accent);
+}
+
+/* nth-of-type, not nth-child — the "camera" ghost label is the first child */
+.viewport i:nth-of-type(1) { top: 0; left: 0;  border-top-width: 4px; border-left-width: 4px;  border-radius: 24px 0 0 0; }
+.viewport i:nth-of-type(2) { top: 0; right: 0; border-top-width: 4px; border-right-width: 4px; border-radius: 0 24px 0 0; }
+.viewport i:nth-of-type(3) { bottom: 0; left: 0;  border-bottom-width: 4px; border-left-width: 4px;  border-radius: 0 0 0 24px; }
+.viewport i:nth-of-type(4) { bottom: 0; right: 0; border-bottom-width: 4px; border-right-width: 4px; border-radius: 0 0 24px 0; }
+
+.ghost {
+  font: 11px var(--font-mono);
+  color: var(--app-ink-35);
+}
+
+/* ── rest timer sheet (M-14, presented over M-13) ───────────────────────── */
+
+.sheet {
+  position: absolute;
+  inset: auto 0 0 0;
+  background: var(--app-surface);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 26px 24px 40px;
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, .5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+/* The sheet re-renders on every clock tick, so the entrance animation is
+   gated on the tick it first appears (app.js adds .is-entering) — otherwise
+   it would replay once a second for the whole countdown. */
+.sheet.is-entering {
+  animation: sheet-up .22s cubic-bezier(.32, .72, 0, 1);
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet.is-entering { animation: none; }
+}
+
+.dial {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+}
+
+.dial svg {
+  position: absolute;
+  transform: rotate(-90deg);
+}
+
+/* ── set logger rows ────────────────────────────────────────────────────── */
+
+.setrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 10px;
+  background: var(--app-surface);
+  transition: background .15s;
+}
+
+.setrow.is-done { background: var(--app-good-soft-2); }
+
+.tick {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid rgba(249, 244, 237, .25);
+  color: var(--app-ink-35);
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.setrow.is-done .tick {
+  background: var(--app-good);
+  border-color: var(--app-good);
+  color: var(--app-accent-ink);
+}
+
+.dashed {
+  text-align: center;
+  border: 1px dashed var(--app-border-strong);
+  border-radius: var(--radius-md);
+  padding: 13px;
+  font-size: 13px;
+  color: var(--app-ink-55);
+  cursor: pointer;
+}
+
+/* ── keypad ─────────────────────────────────────────────────────────────── */
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: auto;
+}
+
+.keypad div {
+  height: 62px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  cursor: pointer;
+  background: var(--app-surface);
+  user-select: none;
+  transition: background .1s;
+}
+
+.keypad div:hover { background: #2c2720; }
+.keypad div:active { background: #362f26; }
+.keypad div.is-blank { background: transparent; cursor: default; pointer-events: none; }
+
+.otpbox {
+  flex: 1;
+  height: 60px;
+  border-radius: var(--radius-md);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 24px;
+  border: 1px solid var(--app-border-strong);
+  background: transparent;
+}
+
+.otpbox.is-filled { background: var(--app-accent-soft); }
+.otpbox.is-next   { border: 2px solid var(--app-accent); }
+
+/* ── generic layout helpers ─────────────────────────────────────────────── */
+
+.row     { display: flex; align-items: center; gap: 12px; }
+.row--top { align-items: flex-start; }
+.between { display: flex; justify-content: space-between; align-items: center; }
+.between--base { align-items: baseline; }
+.stack   { display: flex; flex-direction: column; gap: 16px; }
+.grow    { flex: 1; }
+.push    { margin-top: auto; }
+.grid2   { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.grid4   { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.divider { height: 1px; background: var(--app-border); margin: 14px 0; }
