@@ -1,51 +1,34 @@
-/* Placeholder root. Replaced in M1 by a router that sends each signed-in user
-   to their role's home: /admin, /trainer or /m. */
-export default function Home() {
+import { redirect } from "next/navigation";
+import { currentActor } from "@/lib/db/server";
+import { homeFor } from "@/lib/auth/permissions";
+import type { GymRole } from "@/lib/db/database.types";
+import { Logo, Screen } from "@/components/ui/primitives";
+
+/* ============================================================================
+   S-01 · Splash / session restore
+
+   The only job of "/" is to work out where the caller belongs and send them
+   there. Middleware already redirects signed-in users, so this mostly renders
+   for signed-out visitors on the way to /login — but it repeats the check
+   server-side rather than trusting the proxy hop.
+   ========================================================================= */
+
+export default async function SplashPage() {
+  const actor = await currentActor();
+
+  if (actor) redirect(homeFor(actor.role as GymRole));
+  redirect("/login");
+
+  /* Unreachable, but it is what a slow session restore would paint. */
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-8 px-6 py-16">
-      <div>
-        <p className="font-mono text-[11px] tracking-[0.12em] text-neutral-600">
-          FITWELL · MULTI-TENANT GYM PLATFORM
-        </p>
-        <h1 className="mt-2 text-4xl">Foundation</h1>
-        <p className="mt-3 max-w-md text-sm text-neutral-700">
-          Next.js 16, Tailwind v4 and the Organic design tokens are wired up.
-          Roles, schema and row-level security land next.
+    <Screen center>
+      <Logo size={104} />
+      <div className="mt-6">
+        <h1 className="text-[30px]">Fitwell</h1>
+        <p className="mt-1 text-[13px]" style={{ color: "var(--app-ink-55)" }}>
+          Koramangala · Bengaluru
         </p>
       </div>
-
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ["Active", "bg-status-active"],
-            ["Expiring", "bg-status-expiring"],
-            ["Expired", "bg-status-expired"],
-            ["Frozen", "bg-status-frozen"],
-            ["Trial", "bg-status-trial"],
-            ["Cancelled", "bg-status-cancelled"],
-          ] as const
-        ).map(([label, bg]) => (
-          <span
-            key={label}
-            className={`${bg} rounded-pill px-3 py-1 text-[11px] font-semibold text-neutral-900`}
-          >
-            {label}
-          </span>
-        ))}
-      </div>
-
-      <div className="surface-app rounded-lg p-6">
-        <p className="text-[11px] tracking-[0.08em] text-app-good uppercase">
-          Member surface
-        </p>
-        <p className="mt-2 text-2xl">Chest + Triceps</p>
-        <button
-          type="button"
-          className="mt-4 w-full rounded-pill bg-app-accent px-4 py-3 font-semibold text-app-accent-ink"
-        >
-          Start workout
-        </button>
-      </div>
-    </main>
+    </Screen>
   );
 }

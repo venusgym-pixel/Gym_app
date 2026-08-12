@@ -33,7 +33,7 @@ export async function createServerDb() {
             }
           } catch {
             /* Called from a Server Component, where cookies are read-only.
-               Harmless: middleware refreshes the session on the next request. */
+               Harmless: the proxy refreshes the session on the next request. */
           }
         },
       },
@@ -76,7 +76,7 @@ export async function currentActor(): Promise<Actor | null> {
   return { userId, gymId, role };
 }
 
-/** Same, but throws — for routes that have already been gated by middleware. */
+/** Same, but throws — for routes that have already been gated by the proxy. */
 export async function requireActor(): Promise<Actor> {
   const actor = await currentActor();
   if (!actor) throw new Error("Not authenticated, or no active gym membership");
