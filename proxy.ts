@@ -112,9 +112,20 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /* Everything except static assets and image files. The negative lookahead
-       keeps the proxy off the hot path for the member app's icons and the
-       service worker, which must be cacheable. */
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)",
+    /*
+      Everything except static assets, image files — and /api.
+
+      /api is excluded deliberately, not as an optimisation. This proxy
+      redirects unauthenticated requests to /login, which is right for a page
+      and catastrophic for an endpoint: pg_cron POSTing to /api/jobs/daily
+      with a valid x-cron-secret would receive a 307 to an HTML login page,
+      the job would never run, and the logs would show redirects rather than
+      failures. The whole reminder engine would go quiet without an error.
+
+      Every route under /api authenticates itself — the job endpoints on the
+      shared secret, /api/checkin and /api/qr on the caller's session — so
+      nothing is lost by skipping them here.
+    */
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)",
   ],
 };
