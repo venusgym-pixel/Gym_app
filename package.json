@@ -1,0 +1,50 @@
+{
+  "name": "fitwell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Multi-tenant gym management + member fitness platform",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff",
+    "db:push": "supabase db push",
+    "db:types": "supabase gen types typescript --local > lib/db/database.types.ts",
+    "guard:rls": "tsx scripts/guard-rls.ts",
+    "guard:service-role": "tsx scripts/guard-service-role.ts",
+    "verify": "npm run typecheck && npm run lint && npm run guard:rls && npm run guard:service-role && npm run test"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.3",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.4",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^20.19.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "16.3.0",
+    "supabase": "^2.60.2",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

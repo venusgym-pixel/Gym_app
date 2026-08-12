@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          # @supabase/supabase-js requires >=22; Node 20 is EOL.
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # typecheck + lint + RLS guard + service-role guard + tenant isolation.
+      # The isolation suite boots Postgres in-process (PGlite), so no Docker
+      # service container is needed.
+      - run: npm run verify
+
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: build-time-placeholder-anon-key

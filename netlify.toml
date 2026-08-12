@@ -1,0 +1,51 @@
+# ============================================================================
+# Netlify deployment.
+#
+# Netlify Free is used deliberately: its terms explicitly permit commercial
+# use, where Vercel's Hobby plan does not — and Hobby additionally caps cron
+# jobs at once per day, which cannot run this product's hourly session
+# reminders or 15-minute delivery retries.
+#
+# Scheduling does not live here regardless: pg_cron runs inside Supabase, next
+# to the data, and calls the /api/jobs/* handlers (ADR-3).
+# ============================================================================
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  # @supabase/supabase-js requires Node >= 22; Node 20 is EOL and its missing
+  # global WebSocket makes realtime-js throw at import.
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Deploy previews and branch builds must never point at production Supabase.
+# Set NEXT_PUBLIC_SUPABASE_URL for these contexts in the Netlify UI.
+[context.deploy-preview]
+  command = "npm run build"
+
+[context.branch-deploy]
+  command = "npm run build"
+
+# ── security headers ────────────────────────────────────────────────────────
+# The member app handles health data and payment redirects; progress photos are
+# served from private buckets via signed URLs.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), payment=(self)"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# The QR scanner needs the camera; scope that to the check-in route only.
+[[headers]]
+  for = "/m/checkin/*"
+  [headers.values]
+    Permissions-Policy = "camera=(self), geolocation=(), microphone=()"
