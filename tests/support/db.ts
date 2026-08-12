@@ -48,6 +48,17 @@ const SUPABASE_STUBS = `
 
   -- PGlite bundles neither; gen_random_uuid() is core since PG13.
   create domain citext as text;
+
+  -- pgcrypto stand-in. Real Supabase has the extension; here only
+  -- gen_random_bytes is needed (kiosk device secrets), and test secrets do
+  -- not need to be cryptographically strong.
+  create or replace function gen_random_bytes(n integer) returns bytea
+  language sql volatile as $fn$
+    select decode(
+      string_agg(md5(random()::text || clock_timestamp()::text), ''),
+      'hex')
+    from generate_series(1, greatest(1, (n + 15) / 16));
+  $fn$;
 `;
 
 /* Supabase grants these to every API role by default; PGlite does not.
