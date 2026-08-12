@@ -14,11 +14,17 @@ import path from "node:path";
 
 const ROOT = process.cwd();
 
-/** The single sanctioned construction site. */
+/** The single sanctioned construction site, plus two narrow exceptions. */
 const ALLOWED = [
   path.join("lib", "db", "admin.ts"),
   path.join("lib", "db", "env.ts"), // reads the key to hand to admin.ts
   path.join("scripts", "guard-service-role.ts"), // this file
+
+  /* Creating the first gym cannot go through RLS: there is no gym_users row
+     yet, so no session exists that could be permitted to do it. This is the
+     "gym-onboarding" bypass reason from lib/db/admin.ts, and it runs from a
+     terminal, never in a request path. */
+  path.join("scripts", "bootstrap-gym.ts"),
 ];
 
 const SKIP_DIRS = new Set([

@@ -22,7 +22,8 @@
     "db:types": "supabase gen types typescript --local > lib/db/database.types.ts",
     "guard:rls": "tsx scripts/guard-rls.ts",
     "guard:service-role": "tsx scripts/guard-service-role.ts",
-    "verify": "npm run typecheck && npm run lint && npm run guard:rls && npm run guard:service-role && npm run test"
+    "verify": "npm run typecheck && npm run lint && npm run guard:rls && npm run guard:service-role && npm run test",
+    "bootstrap": "tsx scripts/bootstrap-gym.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
