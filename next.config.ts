@@ -2,6 +2,26 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /*
+    How long the client-side router may reuse a page it has already fetched.
+
+    Every admin page is force-dynamic, and the default for those is 0 — so
+    going Members → Dashboard → Members refetched Members from the server,
+    across the world, even though it had been on screen seconds earlier.
+    Staff bounce between four or five screens constantly, and that is the
+    navigation that felt worst.
+
+    30 seconds is chosen against what the data actually is: attendance and
+    payments change through the day, but not within half a minute of looking
+    away, and every mutation calls revalidatePath, which evicts this cache
+    regardless. So a stale number can only appear if someone ELSE changed it
+    in the last 30 seconds — and reception refreshing after a colleague takes
+    a payment is a page load, not a back-navigation.
+  */
+  experimental: {
+    staleTimes: { dynamic: 30, static: 180 },
+  },
+
+  /*
     Origins allowed to request /_next/* in development.
 
     Next blocks cross-origin dev asset requests by default, which breaks the
