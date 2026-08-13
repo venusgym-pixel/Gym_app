@@ -89,7 +89,7 @@ export default async function MembershipPage() {
   return (
     <>
       <Screen tabBar>
-        <h1 className="text-[28px]">Membership</h1>
+        <h1 className="text-[1.842em]">Membership</h1>
 
         {current ? (
           <div
@@ -97,14 +97,14 @@ export default async function MembershipPage() {
             style={{ background: "var(--color-app-surface)" }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-[18px]">{current.plans?.name}</span>
+              <span className="text-[1.184em]">{current.plans?.name}</span>
               <StatusChip status={current.status} size="md" />
             </div>
-            <p className="mt-3 text-[13px]" style={{ color: "var(--app-ink-55)" }}>
+            <p className="mt-3 text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
               {formatDate(current.started_on)} – {formatDate(current.expires_on)}
             </p>
             <p
-              className="mt-1 text-[13px]"
+              className="mt-1 text-[0.855em]"
               style={{ color: daysLeft !== null && daysLeft <= 7 ? "var(--color-app-accent)" : "var(--app-ink-55)" }}
             >
               {daysLeft === null
@@ -115,15 +115,15 @@ export default async function MembershipPage() {
             </p>
           </div>
         ) : (
-          <p className="mt-5 text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+          <p className="mt-5 text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
             You do not have an active membership.
           </p>
         )}
 
-        <h2 className="mt-8 text-[11px] tracking-[0.08em] text-app-good uppercase">
+        <h2 className="mt-8 text-[0.724em] tracking-[0.08em] text-app-good uppercase">
           {current ? "Renew" : "Choose a plan"}
         </h2>
-        <p className="mt-1.5 text-[12.5px]" style={{ color: "var(--app-ink-50)" }}>
+        <p className="mt-1.5 text-[0.822em]" style={{ color: "var(--app-ink-50)" }}>
           Prices include 18% GST.
         </p>
 
@@ -141,12 +141,12 @@ export default async function MembershipPage() {
                 }}
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="text-[20px]">{p.name}</span>
-                  <span className="text-[20px] font-bold text-app-accent">
+                  <span className="text-[1.316em]">{p.name}</span>
+                  <span className="text-[1.316em] font-bold text-app-accent">
                     {formatINR(split.totalPaise)}
                   </span>
                 </div>
-                <p className="mt-1.5 text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+                <p className="mt-1.5 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
                   {p.duration_days} days · would run to {formatDate(until.toISOString())}
                 </p>
               </div>
@@ -155,7 +155,7 @@ export default async function MembershipPage() {
         </div>
 
         <p
-          className="mt-5 rounded-md px-4 py-3 text-[12.5px]"
+          className="mt-5 rounded-md px-4 py-3 text-[0.822em]"
           style={{ background: "rgb(246 160 107 / 0.10)", color: "var(--color-app-accent)" }}
         >
           Online payment is coming. For now reception can take payment and your
@@ -165,7 +165,7 @@ export default async function MembershipPage() {
 
         {(invoices ?? []).length > 0 && (
           <>
-            <h2 className="mt-8 text-[11px] tracking-[0.08em] uppercase"
+            <h2 className="mt-8 text-[0.724em] tracking-[0.08em] uppercase"
                 style={{ color: "var(--app-ink-50)" }}>
               Receipts
             </h2>
@@ -173,10 +173,10 @@ export default async function MembershipPage() {
               {((invoices ?? []) as { id: string; invoice_no: string; total_paise: string; issued_on: string }[]).map((inv) => (
                 <li
                   key={inv.id}
-                  className="flex items-center justify-between py-2.5 text-[13px]"
+                  className="flex items-center justify-between py-2.5 text-[0.855em]"
                   style={{ borderBottom: "1px solid var(--app-hairline)" }}
                 >
-                  <span className="font-mono text-[11.5px]"
+                  <span className="font-mono text-[0.757em]"
                         style={{ color: "var(--app-ink-55)" }}>
                     {inv.invoice_no}
                   </span>
@@ -192,7 +192,7 @@ export default async function MembershipPage() {
 
         <Link
           href="/m"
-          className="mt-8 text-center text-[12.5px] font-semibold text-app-accent"
+          className="mt-8 text-center text-[0.822em] font-semibold text-app-accent"
         >
           Back to home
         </Link>

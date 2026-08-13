@@ -192,10 +192,10 @@ export function Scanner() {
 
   return (
     <Screen tabBar>
-      <h1 className="text-[24px]">Check in</h1>
+      <h1 className="text-[1.579em]">Check in</h1>
 
       <div
-        className="relative mx-auto mt-8 grid aspect-square w-full max-w-[280px] place-items-center overflow-hidden rounded-lg"
+        className="relative mx-auto mt-8 grid aspect-square w-full max-w-[18.421em] place-items-center overflow-hidden rounded-lg"
         style={{ background: "var(--color-app-surface-2)" }}
       >
         <video
@@ -207,7 +207,7 @@ export function Scanner() {
         />
         <canvas ref={canvas} className="hidden" aria-hidden />
         {!cameraOn && (
-          <span className="max-w-[220px] px-4 text-center text-[11.5px] leading-snug"
+          <span className="max-w-[14.474em] px-4 text-center text-[0.757em] leading-snug"
                 style={{ color: "var(--app-ink-45)" }}>
             {cameraReason ?? "Starting camera…"}
           </span>
@@ -233,7 +233,7 @@ export function Scanner() {
         ))}
       </div>
 
-      <p className="mt-7 text-center text-[14px]" style={{ color: "rgb(249 244 237 / 0.65)" }}>
+      <p className="mt-7 text-center text-[0.921em]" style={{ color: "rgb(249 244 237 / 0.65)" }}>
         {busy
           ? "Checking you in…"
           : cameraOn
@@ -244,7 +244,7 @@ export function Scanner() {
       {error && (
         <p
           role="alert"
-          className="mt-4 rounded-md px-4 py-3 text-center text-[12.5px]"
+          className="mt-4 rounded-md px-4 py-3 text-center text-[0.822em]"
           style={{ background: "rgb(246 160 107 / 0.12)", color: "var(--color-app-accent)" }}
         >
           {error}
@@ -252,7 +252,7 @@ export function Scanner() {
       )}
 
       <div className="mt-auto pt-8">
-        <p className="mb-2 text-[11.5px]" style={{ color: "var(--app-ink-50)" }}>
+        <p className="mb-2 text-[0.757em]" style={{ color: "var(--app-ink-50)" }}>
           Camera not working? Type the code shown under the QR.
         </p>
         <div className="flex gap-2">
@@ -261,7 +261,7 @@ export function Scanner() {
             onChange={(e) => setManual(e.target.value.trim())}
             placeholder="fw1.…"
             aria-label="Check-in code"
-            className="min-w-0 flex-1 rounded-pill px-4 py-3 text-[14px] outline-none"
+            className="min-w-0 flex-1 rounded-pill px-4 py-3 text-[0.921em] outline-none"
             style={{
               background: "var(--color-app-surface)",
               border: "1px solid var(--app-border)",
@@ -331,8 +331,8 @@ function Outcome({ result }: { result: CheckinResponse }) {
           )}
         </div>
 
-        <h1 className="mt-7 text-[30px]">{c.title}</h1>
-        <p className="mt-2 max-w-[290px] text-[13.5px]" style={{ color: "var(--app-ink-60)" }}>
+        <h1 className="mt-7 text-[1.974em]">{c.title}</h1>
+        <p className="mt-2 max-w-[19.079em] text-[0.888em]" style={{ color: "var(--app-ink-60)" }}>
           {c.body}
         </p>
 
@@ -346,7 +346,7 @@ function Outcome({ result }: { result: CheckinResponse }) {
         {!good && (
           <Link
             href="/m/membership"
-            className="mt-8 w-full rounded-pill bg-app-accent py-4 text-center text-[16px] font-bold text-app-accent-ink"
+            className="mt-8 w-full rounded-pill bg-app-accent py-4 text-center text-[1.053em] font-bold text-app-accent-ink"
           >
             See my membership
           </Link>
@@ -354,7 +354,7 @@ function Outcome({ result }: { result: CheckinResponse }) {
 
         <Link
           href="/m"
-          className="mt-4 text-[12.5px] font-semibold text-app-accent"
+          className="mt-4 text-[0.822em] font-semibold text-app-accent"
         >
           Back to home
         </Link>
@@ -371,13 +371,13 @@ function Panel({ value, label, accent }: { value: number; label: string; accent?
       style={{ background: accent ? "var(--app-streak)" : "var(--color-app-surface)" }}
     >
       <div
-        className="text-[38px] leading-none font-bold tracking-[-0.02em]"
+        className="text-[2.5em] leading-none font-bold tracking-[-0.02em]"
         style={{ color: accent ? "#fff" : undefined }}
       >
         {value}
       </div>
       <div
-        className="mt-1 text-[11.5px]"
+        className="mt-1 text-[0.757em]"
         style={{ color: accent ? "rgb(255 255 255 / 0.8)" : "var(--app-ink-55)" }}
       >
         {label}

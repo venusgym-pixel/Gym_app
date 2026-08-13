@@ -43,18 +43,18 @@ export default async function MorePage() {
   return (
     <>
       <Screen tabBar>
-        <h1 className="text-[28px]">Account</h1>
+        <h1 className="text-[1.842em]">Account</h1>
 
         {m && (
           <section
             className="mt-5 rounded-lg p-5"
             style={{ background: "var(--color-app-surface)" }}
           >
-            <p className="text-[18px]">{m.full_name}</p>
-            <p className="mt-1 font-mono text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+            <p className="text-[1.184em]">{m.full_name}</p>
+            <p className="mt-1 font-mono text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
               {m.member_code}
             </p>
-            <dl className="mt-4 space-y-2 text-[13px]">
+            <dl className="mt-4 space-y-2 text-[0.855em]">
               <Row label="Phone" value={m.phone} />
               {m.email && <Row label="Email" value={m.email} />}
               <Row label="Member since" value={formatDate(m.joined_on)} />
@@ -74,20 +74,20 @@ export default async function MorePage() {
           className="mt-3 rounded-lg p-5"
           style={{ background: "var(--color-app-surface)" }}
         >
-          <p className="text-[11px] tracking-[0.08em] uppercase"
+          <p className="text-[0.724em] tracking-[0.08em] uppercase"
              style={{ color: "var(--app-ink-50)" }}>
             Your gym
           </p>
-          <p className="mt-1.5 text-[16px]">{g?.name}</p>
+          <p className="mt-1.5 text-[1.053em]">{g?.name}</p>
           {g?.address && (
-            <p className="mt-1 text-[12.5px]" style={{ color: "var(--app-ink-55)" }}>
+            <p className="mt-1 text-[0.822em]" style={{ color: "var(--app-ink-55)" }}>
               {g.address}
             </p>
           )}
           {g?.phone && (
             <a
               href={`tel:${g.phone}`}
-              className="mt-2 inline-block text-[13px] font-semibold text-app-accent"
+              className="mt-2 inline-block text-[0.855em] font-semibold text-app-accent"
             >
               Call reception
             </a>
@@ -104,7 +104,7 @@ export default async function MorePage() {
         <form action="/api/auth/signout" method="post" className="mt-8">
           <button
             type="submit"
-            className="w-full rounded-pill py-4 text-[15px] font-bold"
+            className="w-full rounded-pill py-4 text-[0.987em] font-bold"
             style={{
               border: "1px solid var(--app-border-strong)",
               color: "var(--color-app-accent)",
@@ -115,7 +115,7 @@ export default async function MorePage() {
         </form>
 
         <p
-          className="mt-4 text-center text-[11.5px]"
+          className="mt-4 text-center text-[0.757em]"
           style={{ color: "var(--app-ink-40)" }}
         >
           Signed in as {actor.email ?? "this account"}
@@ -140,7 +140,7 @@ function Item({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="flex items-center justify-between rounded-lg px-5 py-4 text-[14px]"
+      className="flex items-center justify-between rounded-lg px-5 py-4 text-[0.921em]"
       style={{ background: "var(--color-app-surface)", marginBottom: 8 }}
     >
       {label}

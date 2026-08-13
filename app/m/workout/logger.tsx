@@ -204,12 +204,12 @@ export function WorkoutLogger({ today }: { today: Today }) {
   if (!today.assigned) {
     return (
       <Screen center className="pb-32">
-        <h1 className="text-[26px]">No plan yet</h1>
-        <p className="mt-2 max-w-[280px] text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+        <h1 className="text-[1.711em]">No plan yet</h1>
+        <p className="mt-2 max-w-[18.421em] text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
           Your trainer hasn&rsquo;t assigned a workout. Ask at reception and it
           will show up here.
         </p>
-        <Link href="/m" className="mt-8 text-[12.5px] font-semibold text-app-accent">
+        <Link href="/m" className="mt-8 text-[0.822em] font-semibold text-app-accent">
           Back to home
         </Link>
       </Screen>
@@ -232,8 +232,8 @@ export function WorkoutLogger({ today }: { today: Today }) {
               <path d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h1 className="mt-5 text-[28px]">Workout complete</h1>
-          <p className="mt-1.5 text-[13px]" style={{ color: "var(--app-ink-55)" }}>
+          <h1 className="mt-5 text-[1.842em]">Workout complete</h1>
+          <p className="mt-1.5 text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
             {summary.day_name} · {summary.minutes} min
           </p>
         </div>
@@ -247,11 +247,11 @@ export function WorkoutLogger({ today }: { today: Today }) {
 
         {summary.prs.length > 0 && (
           <div className="mt-4 rounded-lg p-4" style={{ background: "var(--app-accent-soft)" }}>
-            <p className="text-[11px] tracking-[0.08em] text-app-accent uppercase">
+            <p className="text-[0.724em] tracking-[0.08em] text-app-accent uppercase">
               Personal best
             </p>
             {summary.prs.map((pr) => (
-              <p key={pr.exercise} className="mt-1 text-[14px] text-app-accent">
+              <p key={pr.exercise} className="mt-1 text-[0.921em] text-app-accent">
                 {pr.exercise} — {Number(pr.weight_kg)} kg
               </p>
             ))}
@@ -260,7 +260,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
 
         <Link
           href="/m"
-          className="mt-auto rounded-pill bg-app-accent py-4 text-center text-[16px] font-bold text-app-accent-ink"
+          className="mt-auto rounded-pill bg-app-accent py-4 text-center text-[1.053em] font-bold text-app-accent-ink"
         >
           Done
         </Link>
@@ -274,11 +274,11 @@ export function WorkoutLogger({ today }: { today: Today }) {
     const totalSets = exercises.reduce((n, e) => n + e.sets, 0);
     return (
       <Screen className="pb-32">
-        <p className="text-[11px] tracking-[0.08em] text-app-good uppercase">
+        <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">
           {today.plan_name}
         </p>
-        <h1 className="mt-2 text-[30px]">{today.day_name}</h1>
-        <p className="mt-1.5 text-[13px]" style={{ color: "var(--app-ink-55)" }}>
+        <h1 className="mt-2 text-[1.974em]">{today.day_name}</h1>
+        <p className="mt-1.5 text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
           Day {today.day_index} of {today.day_count} · {exercises.length} exercises ·{" "}
           {totalSets} sets
         </p>
@@ -291,13 +291,13 @@ export function WorkoutLogger({ today }: { today: Today }) {
               style={{ borderBottom: "1px solid var(--app-hairline)" }}
             >
               <div className="min-w-0 flex-1">
-                <p className="text-[14px] font-semibold">{e.name}</p>
-                <p className="mt-0.5 text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+                <p className="text-[0.921em] font-semibold">{e.name}</p>
+                <p className="mt-0.5 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
                   {e.sets} × {e.target_reps}
                   {e.last && ` · last ${Number(e.last.weight_kg)}kg × ${e.last.reps}`}
                 </p>
               </div>
-              <span className="text-[11px]" style={{ color: "var(--app-ink-40)" }}>
+              <span className="text-[0.724em]" style={{ color: "var(--app-ink-40)" }}>
                 {e.equipment}
               </span>
             </li>
@@ -331,17 +331,17 @@ export function WorkoutLogger({ today }: { today: Today }) {
 
   return (
     <div className="surface-app relative min-h-dvh">
-      <div className="mx-auto flex min-h-dvh max-w-[430px] flex-col">
+      <div className="mx-auto flex min-h-dvh max-w-[28.289em] flex-col">
         <header
           className="px-6 pt-[max(3rem,env(safe-area-inset-top))] pb-4"
           style={{ borderBottom: "1px solid var(--app-border)" }}
         >
-          <div className="flex justify-between text-[12px]" style={{ color: "var(--app-ink-50)" }}>
+          <div className="flex justify-between text-[0.789em]" style={{ color: "var(--app-ink-50)" }}>
             <span>Exercise {index + 1} of {exercises.length}</span>
             <span>{doneCount}/{sets.length} sets</span>
           </div>
-          <h1 className="mt-2 text-[24px]">{ex.name}</h1>
-          <p className="mt-1.5 text-[12.5px] text-app-good">{suggestion}</p>
+          <h1 className="mt-2 text-[1.579em]">{ex.name}</h1>
+          <p className="mt-1.5 text-[0.822em] text-app-good">{suggestion}</p>
         </header>
 
         <div className="flex-1 overflow-auto px-5 py-4">
@@ -354,9 +354,9 @@ export function WorkoutLogger({ today }: { today: Today }) {
               }}
             >
               <div className="w-12">
-                <p className="text-[12.5px] font-semibold">Set {i + 1}</p>
+                <p className="text-[0.822em] font-semibold">Set {i + 1}</p>
                 {ex.last && (
-                  <p className="text-[10.5px]" style={{ color: "var(--app-ink-45)" }}>
+                  <p className="text-[0.691em]" style={{ color: "var(--app-ink-45)" }}>
                     {Number(ex.last.weight_kg)}×{ex.last.reps}
                   </p>
                 )}
@@ -397,7 +397,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
             </div>
           ))}
 
-          <div className="mt-4 flex justify-between text-[12px]" style={{ color: "var(--app-ink-50)" }}>
+          <div className="mt-4 flex justify-between text-[0.789em]" style={{ color: "var(--app-ink-50)" }}>
             <span>{doneCount} of {sets.length} sets</span>
             <span>{Math.round(volume)} kg logged</span>
           </div>
@@ -451,8 +451,8 @@ function Stepper({
     <div className="flex items-center gap-1.5">
       <Tap size={size} onClick={onDown}>−</Tap>
       <div style={{ width: small ? 36 : 54, textAlign: "center" }}>
-        <div className="text-[17px] font-bold tracking-[-0.02em]">{value}</div>
-        <div className="text-[9.5px]" style={{ color: "var(--app-ink-40)" }}>{unit}</div>
+        <div className="text-[1.118em] font-bold tracking-[-0.02em]">{value}</div>
+        <div className="text-[0.625em]" style={{ color: "var(--app-ink-40)" }}>{unit}</div>
       </div>
       <Tap size={size} onClick={onUp}>+</Tap>
     </div>
@@ -466,7 +466,7 @@ function Tap({
     <button
       type="button"
       onClick={onClick}
-      className="grid rounded-pill text-[18px] select-none"
+      className="grid rounded-pill text-[1.184em] select-none"
       style={{
         width: size, height: size, placeItems: "center",
         background: "var(--app-fill)", color: "var(--color-app-ink)",
@@ -485,7 +485,7 @@ function NavBtn({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className="grid rounded-pill text-[13px] disabled:opacity-30"
+      className="grid rounded-pill text-[0.855em] disabled:opacity-30"
       style={{
         width: 52, height: 48, placeItems: "center",
         border: "1px solid var(--app-border-strong)", color: "var(--app-ink-60)",
@@ -504,14 +504,14 @@ function RestSheet({
   const span = Math.max(total, seconds);
   return (
     <div
-      className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[430px] flex-col items-center gap-4 px-6 pt-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+      className="fixed inset-x-0 bottom-0 z-30 mx-auto flex max-w-[28.289em] flex-col items-center gap-4 px-6 pt-6 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
       style={{
         background: "var(--color-app-surface)",
         borderRadius: "28px 28px 0 0",
         boxShadow: "0 -20px 50px rgb(0 0 0 / 0.5)",
       }}
     >
-      <p className="text-[11px] tracking-[0.08em] uppercase" style={{ color: "var(--app-ink-50)" }}>
+      <p className="text-[0.724em] tracking-[0.08em] uppercase" style={{ color: "var(--app-ink-50)" }}>
         Rest
       </p>
       <div className="relative grid place-items-center" style={{ width: 128, height: 128 }}>
@@ -523,18 +523,18 @@ function RestSheet({
                   strokeWidth="9" strokeLinecap="round"
                   strokeDasharray={`${(C * (1 - seconds / span)).toFixed(1)} ${C.toFixed(1)}`} />
         </svg>
-        <span className="text-[32px] font-bold tracking-[-0.02em]">
+        <span className="text-[2.105em] font-bold tracking-[-0.02em]">
           {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
         </span>
       </div>
       <div className="flex gap-2.5">
         <button type="button" onClick={onAdd}
-                className="rounded-pill px-5 py-2.5 text-[13px]"
+                className="rounded-pill px-5 py-2.5 text-[0.855em]"
                 style={{ border: "1px solid rgb(249 244 237 / 0.2)" }}>
           +30s
         </button>
         <button type="button" onClick={onSkip}
-                className="rounded-pill bg-app-accent px-6 py-2.5 text-[13.5px] font-bold text-app-accent-ink">
+                className="rounded-pill bg-app-accent px-6 py-2.5 text-[0.888em] font-bold text-app-accent-ink">
           Skip rest
         </button>
       </div>
@@ -550,11 +550,11 @@ function Stat({
       className="rounded-lg p-4"
       style={{ background: accent ? "var(--app-accent-soft)" : "var(--color-app-surface)" }}
     >
-      <div className="text-[26px] leading-none font-bold tracking-[-0.02em]"
+      <div className="text-[1.711em] leading-none font-bold tracking-[-0.02em]"
            style={{ color: accent ? "var(--color-app-accent)" : undefined }}>
         {value}
       </div>
-      <div className="mt-1 text-[11.5px]"
+      <div className="mt-1 text-[0.757em]"
            style={{ color: accent ? "var(--color-app-accent)" : "var(--app-ink-55)" }}>
         {label}
       </div>
@@ -564,7 +564,7 @@ function Stat({
 
 function Err({ children }: { children: React.ReactNode }) {
   return (
-    <p role="alert" className="mt-4 rounded-md px-4 py-3 text-[12.5px]"
+    <p role="alert" className="mt-4 rounded-md px-4 py-3 text-[0.822em]"
        style={{ background: "rgb(246 160 107 / 0.12)", color: "var(--color-app-accent)" }}>
       {children}
     </p>

@@ -32,7 +32,7 @@ export default async function AttendanceHistory() {
     return (
       <>
         <Screen center tabBar>
-          <h1 className="text-[24px]">No member record</h1>
+          <h1 className="text-[1.579em]">No member record</h1>
         </Screen>
         <MemberTabBar current="/m/attendance" />
       </>
@@ -66,7 +66,7 @@ export default async function AttendanceHistory() {
   return (
     <>
       <Screen tabBar>
-        <h1 className="text-[28px]">Your visits</h1>
+        <h1 className="text-[1.842em]">Your visits</h1>
 
         <div className="mt-5 grid grid-cols-3 gap-2.5">
           <Stat value={Number(streak ?? 0)} label="day streak" />
@@ -75,7 +75,7 @@ export default async function AttendanceHistory() {
         </div>
 
         <h2
-          className="mt-8 text-[11px] tracking-[0.08em] uppercase"
+          className="mt-8 text-[0.724em] tracking-[0.08em] uppercase"
           style={{ color: "var(--app-ink-50)" }}
         >
           When you train
@@ -96,7 +96,7 @@ export default async function AttendanceHistory() {
                   title={`${n} visits on a ${DAYS[i]}`}
                 />
               </div>
-              <span className="text-[10px]" style={{ color: "var(--app-ink-45)" }}>
+              <span className="text-[0.658em]" style={{ color: "var(--app-ink-45)" }}>
                 {DAYS[i]}
               </span>
             </div>
@@ -104,13 +104,13 @@ export default async function AttendanceHistory() {
         </div>
 
         <h2
-          className="mt-8 text-[11px] tracking-[0.08em] uppercase"
+          className="mt-8 text-[0.724em] tracking-[0.08em] uppercase"
           style={{ color: "var(--app-ink-50)" }}
         >
           History
         </h2>
         {rows.length === 0 ? (
-          <p className="mt-4 text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+          <p className="mt-4 text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
             No visits yet. Scan the code at reception to record your first one.
           </p>
         ) : (
@@ -118,7 +118,7 @@ export default async function AttendanceHistory() {
             {rows.map((v) => (
               <li
                 key={v.id}
-                className="flex items-center justify-between py-3 text-[13.5px]"
+                className="flex items-center justify-between py-3 text-[0.888em]"
                 style={{ borderBottom: "1px solid var(--app-hairline)" }}
               >
                 <span>{formatDate(v.checked_in_at)}</span>
@@ -143,8 +143,8 @@ export default async function AttendanceHistory() {
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="rounded-md p-4" style={{ background: "var(--color-app-surface)" }}>
-      <div className="text-[26px] leading-none font-bold tracking-[-0.02em]">{value}</div>
-      <div className="mt-1 text-[11px]" style={{ color: "var(--app-ink-55)" }}>
+      <div className="text-[1.711em] leading-none font-bold tracking-[-0.02em]">{value}</div>
+      <div className="mt-1 text-[0.724em]" style={{ color: "var(--app-ink-55)" }}>
         {label}
       </div>
     </div>

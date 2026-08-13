@@ -90,11 +90,28 @@
      The fallback in env(..., 0px) matters: without it the whole calc()
      is invalid on browsers that do not know the keyword, and the bar
      collapses entirely rather than degrading. */
-  --tabbar-controls: 4.5rem;
+  /* ── The member app's fluid scale ───────────────────────────────────────
+     Every size on the member surface is expressed in em against this, so
+     the whole UI grows and shrinks with the viewport instead of being drawn
+     at one fixed size and letterboxed.
+
+     Solved from two anchor points rather than guessed: 15px at a 320px
+     phone, 17.5px at 500px. That gives 0.542rem + 1.667vw, which lands on
+     ~15.2px at 390px — the size the design was drawn at.
+
+     The clamp bounds matter as much as the slope. Without a minimum, vw
+     alone is unreadable on a small phone; without a maximum, absurd on a
+     desktop. The rem component and a max only 1.4x the min are what keep
+     it legible under browser zoom (WCAG 1.4.4), which pure-vw sizing
+     breaks outright. */
+  --app-font: clamp(0.875rem, 0.542rem + 1.667vw, 1.25rem);
+
+  /* Tab bar geometry, now in em so it scales with the type. */
+  --tabbar-controls: 4.6em;
   --tabbar-total: calc(var(--tabbar-controls) + env(safe-area-inset-bottom, 0px));
-  /* Clearance for scrolling content: the bar, plus the 28px the check-in
-     FAB rises above it, plus breathing room. */
-  --tabbar-clearance: calc(var(--tabbar-total) + 3.25rem);
+  /* Clearance for scrolling content: the bar, plus the FAB's overhang,
+     plus breathing room. */
+  --tabbar-clearance: calc(var(--tabbar-total) + 3.4em);
 
   /* ── Membership status. One palette, six variants, used identically in
        admin tables, member home and the check-in kiosk (ui-screens-spec §0.3
@@ -146,6 +163,15 @@
 
   /* The member app inverts to the dark surface. Applied on the (member)
      route group's layout, not globally. */
+  /* .app-scale carries the fluid base size. It is a separate class from
+     .surface-app because the tab bar is a SIBLING of the screen, not a
+     child — it would not inherit the size otherwise, and the bar would stop
+     scaling with everything above it. */
+  .surface-app,
+  .app-scale {
+    font-size: var(--app-font);
+  }
+
   .surface-app {
     background: var(--color-app-bg);
     color: var(--color-app-ink);

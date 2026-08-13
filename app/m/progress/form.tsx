@@ -48,7 +48,7 @@ export function LogMeasurement({
                 border: "1px solid var(--app-border)",
               }}
             >
-              <span className="flex-1 text-[13.5px]" style={{ color: "var(--app-ink-70)" }}>
+              <span className="flex-1 text-[0.888em]" style={{ color: "var(--app-ink-70)" }}>
                 {f.label}
               </span>
               <input
@@ -56,10 +56,10 @@ export function LogMeasurement({
                 inputMode="decimal"
                 placeholder={prev != null ? String(Number(prev)) : "—"}
                 aria-label={`${f.label} in ${f.unit}`}
-                className="w-20 bg-transparent text-right text-[15px] outline-none"
+                className="w-20 bg-transparent text-right text-[0.987em] outline-none"
                 style={{ color: "var(--color-app-ink)" }}
               />
-              <span className="w-6 text-[11.5px]" style={{ color: "var(--app-ink-40)" }}>
+              <span className="w-6 text-[0.757em]" style={{ color: "var(--app-ink-40)" }}>
                 {f.unit}
               </span>
             </label>
@@ -70,7 +70,7 @@ export function LogMeasurement({
       {state && (
         <p
           role="status"
-          className="mt-3 rounded-md px-4 py-2.5 text-[12.5px]"
+          className="mt-3 rounded-md px-4 py-2.5 text-[0.822em]"
           style={
             state.ok
               ? { background: "var(--app-good-soft-2)", color: "var(--color-app-good)" }
@@ -84,12 +84,12 @@ export function LogMeasurement({
       <button
         type="submit"
         disabled={pending}
-        className="mt-4 w-full rounded-pill bg-app-accent py-4 text-[16px] font-bold text-app-accent-ink disabled:opacity-50"
+        className="mt-4 w-full rounded-pill bg-app-accent py-4 text-[1.053em] font-bold text-app-accent-ink disabled:opacity-50"
       >
         {pending ? "Saving…" : "Save entry"}
       </button>
 
-      <p className="mt-2 text-center text-[11px]" style={{ color: "var(--app-ink-40)" }}>
+      <p className="mt-2 text-center text-[0.724em]" style={{ color: "var(--app-ink-40)" }}>
         Leave anything blank that you did not measure today.
       </p>
     </form>

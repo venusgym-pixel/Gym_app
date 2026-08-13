@@ -49,7 +49,7 @@ export default async function ProgressPage() {
   if (!m) {
     return (
       <>
-        <Screen center tabBar><h1 className="text-[24px]">No member record</h1></Screen>
+        <Screen center tabBar><h1 className="text-[1.579em]">No member record</h1></Screen>
         <MemberTabBar current="/m/progress" />
       </>
     );
@@ -107,7 +107,7 @@ export default async function ProgressPage() {
   return (
     <>
       <Screen tabBar>
-        <h1 className="text-[28px]">Progress</h1>
+        <h1 className="text-[1.842em]">Progress</h1>
 
         <div className="mt-5 grid grid-cols-3 gap-2.5">
           <Stat
@@ -130,12 +130,12 @@ export default async function ProgressPage() {
         {rows.filter((r) => r.weight_kg).length >= 2 ? (
           <section className="mt-5 rounded-lg p-5" style={{ background: "var(--color-app-surface)" }}>
             <div className="flex items-baseline justify-between">
-              <p className="text-[11px] tracking-[0.08em] uppercase"
+              <p className="text-[0.724em] tracking-[0.08em] uppercase"
                  style={{ color: "var(--app-ink-50)" }}>
                 Weight
               </p>
               {m.target_weight_kg && (
-                <p className="text-[11.5px]" style={{ color: "var(--app-ink-50)" }}>
+                <p className="text-[0.757em]" style={{ color: "var(--app-ink-50)" }}>
                   Target {Number(m.target_weight_kg)} kg
                 </p>
               )}
@@ -148,21 +148,21 @@ export default async function ProgressPage() {
             />
           </section>
         ) : (
-          <p className="mt-5 text-[13px]" style={{ color: "var(--app-ink-55)" }}>
+          <p className="mt-5 text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
             Log your weight twice and a trend appears here.
           </p>
         )}
 
         {bests.length > 0 && (
           <>
-            <h2 className="mt-8 text-[11px] tracking-[0.08em] uppercase"
+            <h2 className="mt-8 text-[0.724em] tracking-[0.08em] uppercase"
                 style={{ color: "var(--app-ink-50)" }}>
               Personal bests
             </h2>
             <ul className="mt-2">
               {bests.map((b) => (
                 <li key={b.name}
-                    className="flex items-center justify-between py-3 text-[13.5px]"
+                    className="flex items-center justify-between py-3 text-[0.888em]"
                     style={{ borderBottom: "1px solid var(--app-hairline)" }}>
                   <span className="min-w-0 flex-1 truncate">{b.name}</span>
                   <span className="font-semibold">
@@ -176,7 +176,7 @@ export default async function ProgressPage() {
 
         {latest && (
           <>
-            <h2 className="mt-8 text-[11px] tracking-[0.08em] uppercase"
+            <h2 className="mt-8 text-[0.724em] tracking-[0.08em] uppercase"
                 style={{ color: "var(--app-ink-50)" }}>
               Latest measurements · {formatDate(latest.taken_on)}
             </h2>
@@ -192,13 +192,13 @@ export default async function ProgressPage() {
                   const d = delta(v, base);
                   return (
                     <li key={label}
-                        className="flex items-center justify-between py-3 text-[13.5px]"
+                        className="flex items-center justify-between py-3 text-[0.888em]"
                         style={{ borderBottom: "1px solid var(--app-hairline)" }}>
                       <span style={{ color: "var(--app-ink-70)" }}>{label}</span>
                       <span>
                         {Number(v)} cm{" "}
                         {d !== null && d !== 0 && (
-                          <span className="text-[12px] text-app-good">
+                          <span className="text-[0.789em] text-app-good">
                             {d > 0 ? "+" : ""}{d.toFixed(1)}
                           </span>
                         )}
@@ -210,7 +210,7 @@ export default async function ProgressPage() {
           </>
         )}
 
-        <h2 className="mt-8 text-[11px] tracking-[0.08em] text-app-good uppercase">
+        <h2 className="mt-8 text-[0.724em] tracking-[0.08em] text-app-good uppercase">
           Log today
         </h2>
         <LogMeasurement
@@ -231,9 +231,9 @@ export default async function ProgressPage() {
 function Stat({ value, label, sub }: { value: string | number; label: string; sub?: string }) {
   return (
     <div className="rounded-md p-4" style={{ background: "var(--color-app-surface)" }}>
-      <div className="text-[24px] leading-none font-bold tracking-[-0.02em]">{value}</div>
-      <div className="mt-1 text-[11px]" style={{ color: "var(--app-ink-55)" }}>{label}</div>
-      {sub && <div className="mt-0.5 text-[10.5px] text-app-good">{sub}</div>}
+      <div className="text-[1.579em] leading-none font-bold tracking-[-0.02em]">{value}</div>
+      <div className="mt-1 text-[0.724em]" style={{ color: "var(--app-ink-55)" }}>{label}</div>
+      {sub && <div className="mt-0.5 text-[0.691em] text-app-good">{sub}</div>}
     </div>
   );
 }
@@ -257,7 +257,7 @@ function WeightChart({
 
   return (
     <>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 h-[110px] w-full"
+      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 h-[7.237em] w-full"
            role="img"
            aria-label={`Weight from ${points[0].v} to ${points.at(-1)!.v} kilograms`}>
         {target !== null && (
@@ -269,7 +269,7 @@ function WeightChart({
         <circle cx={x(points.length - 1)} cy={y(points.at(-1)!.v)} r="5"
                 fill="var(--color-app-accent)" />
       </svg>
-      <div className="flex justify-between text-[10.5px]" style={{ color: "var(--app-ink-40)" }}>
+      <div className="flex justify-between text-[0.691em]" style={{ color: "var(--app-ink-40)" }}>
         <span>{formatDate(points[0].d)}</span>
         <span>{formatDate(points.at(-1)!.d)}</span>
       </div>

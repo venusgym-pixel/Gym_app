@@ -82,8 +82,8 @@ export function InstallPrompt() {
       style={{ background: "var(--color-app-surface)" }}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-[13.5px] font-semibold">Add Fitwell to your home screen</p>
-        <p className="mt-0.5 text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+        <p className="text-[0.888em] font-semibold">Add Fitwell to your home screen</p>
+        <p className="mt-0.5 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
           {isIOS
             ? "Tap Share, then Add to Home Screen."
             : "Opens like an app, straight to your check-in code."}
@@ -100,7 +100,7 @@ export function InstallPrompt() {
                shown twice, so drop it either way. */
             setDeferred(null);
           }}
-          className="shrink-0 rounded-pill bg-app-accent px-4 py-2 text-[12.5px] font-bold text-app-accent-ink"
+          className="shrink-0 rounded-pill bg-app-accent px-4 py-2 text-[0.822em] font-bold text-app-accent-ink"
         >
           Install
         </button>
@@ -109,7 +109,7 @@ export function InstallPrompt() {
           type="button"
           onClick={hide}
           aria-label="Dismiss"
-          className="shrink-0 rounded-pill px-3 py-2 text-[12.5px]"
+          className="shrink-0 rounded-pill px-3 py-2 text-[0.822em]"
           style={{ color: "var(--app-ink-55)" }}
         >
           Got it

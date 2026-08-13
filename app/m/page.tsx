@@ -51,8 +51,8 @@ export default async function MemberHome() {
     return (
       <>
         <Screen center tabBar>
-          <h1 className="text-[26px]">No membership found</h1>
-          <p className="mt-2 text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+          <h1 className="text-[1.711em]">No membership found</h1>
+          <p className="mt-2 text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
             Your account isn&rsquo;t linked to a member record yet. Reception can
             fix this in a moment.
           </p>
@@ -147,16 +147,16 @@ export default async function MemberHome() {
       <Screen tabBar className="gap-3.5">
         <header className="flex items-center gap-3">
           <div
-            className="grid h-11 w-11 place-items-center rounded-pill text-[15px] font-semibold"
+            className="grid h-11 w-11 place-items-center rounded-pill text-[0.987em] font-semibold"
             style={{ background: "var(--color-app-avatar)", color: "var(--color-app-accent)" }}
           >
             {firstName.slice(0, 2).toUpperCase()}
           </div>
           <div className="flex-1">
-            <p className="text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+            <p className="text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
               {m.member_code}
             </p>
-            <h1 className="text-[20px] leading-tight">{firstName}</h1>
+            <h1 className="text-[1.316em] leading-tight">{firstName}</h1>
           </div>
         </header>
 
@@ -170,14 +170,14 @@ export default async function MemberHome() {
             style={{ background: "rgb(255 255 255 / 0.09)" }}
             aria-hidden
           />
-          <span className="text-[46px] leading-none font-bold tracking-[-0.02em] text-white">
+          <span className="text-[3.026em] leading-none font-bold tracking-[-0.02em] text-white">
             {streak}
           </span>
           <div className="flex flex-col">
-            <span className="text-[13px] font-semibold text-white">
+            <span className="text-[0.855em] font-semibold text-white">
               day{streak === 1 ? "" : "s"} in a row
             </span>
-            <span className="text-[11.5px]" style={{ color: "rgb(255 255 255 / 0.75)" }}>
+            <span className="text-[0.757em]" style={{ color: "rgb(255 255 255 / 0.75)" }}>
               {visits} visit{visits === 1 ? "" : "s"} this month
               {lastVisit ? ` · last ${formatDate(lastVisit)}` : ""}
             </span>
@@ -189,13 +189,13 @@ export default async function MemberHome() {
           {term ? (
             <>
               <div className="flex items-center justify-between">
-                <span className="text-[13.5px] font-semibold">
+                <span className="text-[0.888em] font-semibold">
                   {term.plans?.name} · <StatusChip status={term.status} />
                 </span>
-                <span className="text-[20px] font-semibold text-app-accent">
+                <span className="text-[1.316em] font-semibold text-app-accent">
                   {daysLeft !== null && daysLeft >= 0 ? daysLeft : 0}
                   <span
-                    className="text-[12px] font-normal"
+                    className="text-[0.789em] font-normal"
                     style={{ color: "var(--app-ink-55)" }}
                   >
                     {" "}
@@ -215,7 +215,7 @@ export default async function MemberHome() {
               </div>
 
               <div
-                className="mt-2.5 flex justify-between text-[11.5px]"
+                className="mt-2.5 flex justify-between text-[0.757em]"
                 style={{ color: "var(--app-ink-50)" }}
               >
                 <span>{formatDate(term.started_on)}</span>
@@ -225,14 +225,14 @@ export default async function MemberHome() {
               {daysLeft !== null && daysLeft <= 7 && (
                 <Link
                   href="/m/membership"
-                  className="mt-4 block rounded-pill bg-app-accent py-3 text-center text-[15px] font-bold text-app-accent-ink"
+                  className="mt-4 block rounded-pill bg-app-accent py-3 text-center text-[0.987em] font-bold text-app-accent-ink"
                 >
                   {daysLeft < 0 ? "Renew now" : `Renew — ${daysLeft}d left`}
                 </Link>
               )}
             </>
           ) : (
-            <p className="text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+            <p className="text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
               No active membership. Speak to reception to get started.
             </p>
           )}
@@ -244,11 +244,11 @@ export default async function MemberHome() {
           className="rounded-lg px-5 py-4"
           style={{ background: "var(--color-app-surface)" }}
         >
-          <p className="text-[11px] tracking-[0.08em] text-app-good uppercase">
+          <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">
             At the gym?
           </p>
-          <p className="mt-1.5 text-[22px]">Scan to check in</p>
-          <p className="mt-1 text-[12.5px]" style={{ color: "var(--app-ink-55)" }}>
+          <p className="mt-1.5 text-[1.447em]">Scan to check in</p>
+          <p className="mt-1 text-[0.822em]" style={{ color: "var(--app-ink-55)" }}>
             Point your camera at the code on the reception counter.
           </p>
         </Link>
@@ -259,13 +259,13 @@ export default async function MemberHome() {
           className="rounded-lg px-5 py-4"
           style={{ background: "var(--color-app-surface)" }}
         >
-          <p className="text-[11px] tracking-[0.08em] uppercase" style={{ color: "var(--app-ink-55)" }}>
+          <p className="text-[0.724em] tracking-[0.08em] uppercase" style={{ color: "var(--app-ink-55)" }}>
             {workout?.assigned ? workout.plan_name : "Training"}
           </p>
-          <p className="mt-1.5 text-[22px]">
+          <p className="mt-1.5 text-[1.447em]">
             {workout?.assigned ? workout.day_name : "No plan yet"}
           </p>
-          <p className="mt-1 text-[12.5px]" style={{ color: "var(--app-ink-55)" }}>
+          <p className="mt-1 text-[0.822em]" style={{ color: "var(--app-ink-55)" }}>
             {workout?.assigned
               ? `${workout.exercises?.length ?? 0} exercises · tap to start`
               : "Ask your trainer to assign one."}
@@ -299,8 +299,8 @@ function Tile({ href, label, value }: { href: string; label: string; value: stri
       className="rounded-md px-4 py-3.5"
       style={{ background: "var(--color-app-surface)" }}
     >
-      <div className="text-[20px] font-bold tracking-[-0.02em]">{value}</div>
-      <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--app-ink-55)" }}>
+      <div className="text-[1.316em] font-bold tracking-[-0.02em]">{value}</div>
+      <div className="mt-0.5 text-[0.757em]" style={{ color: "var(--app-ink-55)" }}>
         {label}
       </div>
     </Link>

@@ -25,7 +25,7 @@ export function MemberTabBar({ current }: { current: string }) {
      browser tab, where the inset is 0. */
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-[430px] items-start justify-between border-t px-4"
+      className="app-scale fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-[29em] items-start justify-between border-t px-[1em]"
       style={{
         height: "var(--tabbar-total)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -39,7 +39,7 @@ export function MemberTabBar({ current }: { current: string }) {
       <Link
         href="/m/checkin"
         aria-label="Check in"
-        className="grid h-16 w-16 -translate-y-7 place-items-center rounded-pill bg-app-accent"
+        className="grid h-[4.2em] w-[4.2em] -translate-y-[1.8em] place-items-center rounded-pill bg-app-accent"
         style={{ boxShadow: "0 8px 24px rgb(198 113 57 / 0.45)" }}
       >
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
@@ -67,7 +67,7 @@ function Tab({ href, label, current }: { href: string; label: string; current: s
     <Link
       href={href}
       aria-current={on ? "page" : undefined}
-      className="flex w-16 flex-col items-center justify-center gap-1 text-[10.5px] font-medium"
+      className="flex w-[4.2em] flex-col items-center justify-center gap-[0.3em] text-[0.72em] font-medium"
       style={{
         height: "var(--tabbar-controls)",
         color: on ? "var(--color-app-accent)" : "var(--app-ink-45)",
@@ -77,7 +77,7 @@ function Tab({ href, label, current }: { href: string; label: string; current: s
           without pretending to five icons that would each need drawing. */}
       <span
         aria-hidden
-        className="h-1.5 w-1.5 rounded-pill transition-opacity"
+        className="h-[0.35em] w-[0.35em] rounded-pill transition-opacity"
         style={{
           background: "var(--color-app-accent)",
           opacity: on ? 1 : 0,

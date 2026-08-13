@@ -39,7 +39,7 @@ export function Screen({
     <div className="surface-app min-h-dvh w-full">
       <div
         className={cx(
-          "mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-6",
+          "mx-auto flex min-h-dvh w-full max-w-[29em] flex-col px-[1.6em]",
           /* Clears the notch. Adding to the inset rather than taking the
              larger of the two: on an iPhone 14 Pro the inset is 59px, so
              max(56px, 59px) left the first line flush against the Dynamic
@@ -65,12 +65,12 @@ export function Screen({
 /* ── type ─────────────────────────────────────────────────────────────────── */
 
 export function Title({ children, className }: { children: ReactNode; className?: string }) {
-  return <h1 className={cx("text-[30px] leading-[1.12]", className)}>{children}</h1>;
+  return <h1 className={cx("text-[1.974em] leading-[1.12]", className)}>{children}</h1>;
 }
 
 export function Sub({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <p className={cx("mt-2 text-[13.5px] leading-relaxed", className)}
+    <p className={cx("mt-2 text-[0.888em] leading-relaxed", className)}
        style={{ color: "var(--app-ink-55)" }}>
       {children}
     </p>
@@ -79,7 +79,7 @@ export function Sub({ children, className }: { children: ReactNode; className?: 
 
 export function Kicker({ children }: { children: ReactNode }) {
   return (
-    <p className="text-[11px] tracking-[0.08em] text-app-good uppercase">{children}</p>
+    <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">{children}</p>
   );
 }
 
@@ -91,7 +91,7 @@ export function Hint({ children, tone = "muted" }: {
     tone === "good" ? "var(--color-app-good)"
     : tone === "accent" ? "var(--color-app-accent)"
     : "var(--app-ink-45)";
-  return <p className="mt-2 text-[12px]" style={{ color }}>{children}</p>;
+  return <p className="mt-2 text-[0.789em]" style={{ color }}>{children}</p>;
 }
 
 /* ── controls ─────────────────────────────────────────────────────────────── */
@@ -110,7 +110,7 @@ export function Cta({
       {...rest}
       disabled={disabled || loading}
       className={cx(
-        "w-full rounded-pill bg-app-accent px-4 py-4 text-[16px] font-bold tracking-[-0.02em]",
+        "w-full rounded-pill bg-app-accent px-4 py-4 text-[1.053em] font-bold tracking-[-0.02em]",
         "text-app-accent-ink transition-opacity",
         "hover:opacity-90 active:opacity-80",
         "disabled:cursor-not-allowed disabled:opacity-40",
@@ -131,7 +131,7 @@ export function GhostLink({
       type="button"
       {...rest}
       className={cx(
-        "text-[12.5px] font-semibold text-app-accent hover:underline",
+        "text-[0.822em] font-semibold text-app-accent hover:underline",
         className,
       )}
     >
@@ -144,7 +144,7 @@ export function GhostLink({
 
 export function Label({ children }: { children: ReactNode }) {
   return (
-    <span className="mb-[7px] block text-[11.5px]" style={{ color: "var(--app-ink-50)" }}>
+    <span className="mb-[0.461em] block text-[0.757em]" style={{ color: "var(--app-ink-50)" }}>
       {children}
     </span>
   );
@@ -157,7 +157,7 @@ type InputProps = ComponentPropsWithoutRef<"input"> & { prefix?: ReactNode };
 export function PillInput({ prefix, className, ...rest }: InputProps) {
   return (
     <div
-      className="flex items-center gap-[10px] rounded-pill px-5 py-[15px]"
+      className="flex items-center gap-[0.658em] rounded-pill px-5 py-[0.987em]"
       style={{
         background: "var(--color-app-surface)",
         border: "1px solid var(--app-border)",
@@ -165,16 +165,16 @@ export function PillInput({ prefix, className, ...rest }: InputProps) {
     >
       {prefix && (
         <>
-          <span className="text-[15px]" style={{ color: "var(--app-ink-60)" }}>
+          <span className="text-[0.987em]" style={{ color: "var(--app-ink-60)" }}>
             {prefix}
           </span>
-          <span className="h-[18px] w-px" style={{ background: "rgb(249 244 237 / 0.15)" }} />
+          <span className="h-[1.184em] w-px" style={{ background: "rgb(249 244 237 / 0.15)" }} />
         </>
       )}
       <input
         {...rest}
         className={cx(
-          "min-w-0 flex-1 bg-transparent text-[16px] tracking-[0.02em]",
+          "min-w-0 flex-1 bg-transparent text-[1.053em] tracking-[0.02em]",
           "text-app-ink outline-none placeholder:text-[var(--app-ink-40)]",
           className,
         )}
@@ -209,7 +209,7 @@ export function Segmented<T extends string>({
             aria-selected={on}
             onClick={() => onChange(opt)}
             className={cx(
-              "flex-1 rounded-pill py-[10px] text-[13px] font-semibold transition-colors",
+              "flex-1 rounded-pill py-[0.658em] text-[0.855em] font-semibold transition-colors",
               on ? "bg-app-accent text-app-accent-ink" : "hover:text-app-ink",
             )}
             style={on ? undefined : { color: "var(--app-ink-60)" }}
@@ -229,7 +229,7 @@ export function ErrorNote({ children }: { children: ReactNode }) {
   return (
     <p
       role="alert"
-      className="mt-3 rounded-md px-4 py-3 text-[12.5px] leading-snug"
+      className="mt-3 rounded-md px-4 py-3 text-[0.822em] leading-snug"
       style={{
         background: "rgb(246 160 107 / 0.12)",
         color: "var(--color-app-accent)",
@@ -262,11 +262,11 @@ export function Logo({ size = 52 }: { size?: number }) {
 
 export function Dots({ count, active }: { count: number; active: number }) {
   return (
-    <div className="flex gap-[7px]">
+    <div className="flex gap-[0.461em]">
       {Array.from({ length: count }, (_, i) => (
         <span
           key={i}
-          className="h-[7px] rounded-pill transition-all"
+          className="h-[0.461em] rounded-pill transition-all"
           style={{
             width: i === active ? 20 : 7,
             background: i === active
