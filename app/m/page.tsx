@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { MemberTabBar } from "@/components/member/nav";
+import { InstallPrompt } from "@/components/member/install";
 import { Screen } from "@/components/ui/primitives";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR } from "@/lib/money";
@@ -279,6 +280,11 @@ export default async function MemberHome() {
                 value={latestWeight === null ? "Log" : `${latestWeight}kg`} />
           <Tile href="/m/more" label="Profile & help" value="More" />
         </div>
+
+        {/* Renders nothing once installed, or where the browser cannot
+            install at all — so it is not a banner everyone has to dismiss
+            forever. It also registers the service worker. */}
+        <InstallPrompt />
       </Screen>
 
       <MemberTabBar current="/m" />
