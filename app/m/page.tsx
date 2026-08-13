@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { MemberTabBar } from "@/components/member/nav";
 import { InstallPrompt } from "@/components/member/install";
+import { ViewportBadge } from "@/components/member/viewport-badge";
 import { Screen } from "@/components/ui/primitives";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR } from "@/lib/money";
@@ -144,6 +145,7 @@ export default async function MemberHome() {
 
   return (
     <>
+      <ViewportBadge />
       <Screen tabBar className="gap-3.5">
         <header className="flex items-center gap-3">
           <div
