@@ -20,6 +20,18 @@
   NODE_VERSION = "22"
   NEXT_TELEMETRY_DISABLED = "1"
 
+  # Netlify's secrets scanner fails the build when an environment variable's
+  # value appears in the build output. Next inlines every NEXT_PUBLIC_* value
+  # into the client bundle by design, so these two always will — and they are
+  # meant to be public: the URL is in every request, and the publishable key
+  # is what the browser authenticates with. Row-level security is what stops
+  # it reading anything, not its secrecy.
+  #
+  # SUPABASE_SERVICE_ROLE_KEY is deliberately NOT listed. It must never reach
+  # the bundle, and leaving it scanned means the build fails loudly if it ever
+  # does.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY"
+
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
