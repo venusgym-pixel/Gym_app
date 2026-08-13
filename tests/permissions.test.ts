@@ -12,7 +12,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import { createTestDb, type TestDb } from "./support/db";
 import {
   MATRIX, MODULES, can, grantFor, homeFor, scopeOf, seesWholeGym,
-  surfaceFor, surfaceForPath, type Module,
+  mayOpen, surfaceFor, surfaceForPath, type Module,
 } from "../lib/auth/permissions";
 import type { GymRole } from "../lib/db/database.types";
 
@@ -164,6 +164,22 @@ describe("surface routing", () => {
     expect(surfaceForPath("/")).toBeNull();
     // /members must not be mistaken for the /m surface
     expect(surfaceForPath("/members")).toBeNull();
+  });
+
+  it("owners and managers may also open the trainer surface", () => {
+    for (const role of ["owner", "manager"] as const) {
+      expect(mayOpen(role, "admin")).toBe(true);
+      expect(mayOpen(role, "trainer"), `${role} supervises coaching`).toBe(true);
+      expect(mayOpen(role, "member"), "staff have no member record").toBe(false);
+    }
+  });
+
+  it("narrower roles stay in their own surface", () => {
+    expect(mayOpen("receptionist", "trainer")).toBe(false);
+    expect(mayOpen("trainer", "admin")).toBe(false);
+    expect(mayOpen("member", "admin")).toBe(false);
+    expect(mayOpen("member", "trainer")).toBe(false);
+    expect(mayOpen("member", "member")).toBe(true);
   });
 
   it("every role resolves to a surface", () => {

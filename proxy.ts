@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { homeFor, surfaceFor, surfaceForPath } from "@/lib/auth/permissions";
+import { homeFor, mayOpen, surfaceForPath } from "@/lib/auth/permissions";
 import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
@@ -96,9 +96,13 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(url);
       }
 
-      // Wrong surface for this role → their own home.
+      /* A surface this role has no business in → their own home.
+         mayOpen(), not surfaceFor(): owners and managers land on /admin but
+         legitimately supervise coaching, so bouncing them out of /trainer
+         would make the product feel like it is hiding things from the person
+         who owns it. */
       const wanted = surfaceForPath(pathname);
-      if (wanted && wanted !== surfaceFor(role)) {
+      if (wanted && !mayOpen(role, wanted)) {
         const url = request.nextUrl.clone();
         url.pathname = home;
         url.search = "";

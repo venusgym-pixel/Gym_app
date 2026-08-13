@@ -175,6 +175,27 @@ export function surfaceFor(role: GymRole): Surface {
   return SURFACE[role];
 }
 
+/**
+ * Which surfaces a role may open, as opposed to which one it lands in.
+ *
+ * Owners and managers supervise coaching, so bouncing them out of /trainer
+ * back to /admin makes the product feel like it is hiding things from the
+ * person who owns it. Nobody gets the member surface but members: it renders
+ * "your" membership and "your" workout, and for staff those are meaningless.
+ */
+const ALLOWED: Record<GymRole, Surface[]> = {
+  owner: ["admin", "trainer"],
+  manager: ["admin", "trainer"],
+  receptionist: ["admin"],
+  trainer: ["trainer"],
+  nutritionist: ["trainer"],
+  member: ["member"],
+};
+
+export function mayOpen(role: GymRole, surface: Surface): boolean {
+  return ALLOWED[role].includes(surface);
+}
+
 export function homeFor(role: GymRole): string {
   return SURFACE_HOME[surfaceFor(role)];
 }

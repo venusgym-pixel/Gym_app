@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { DaysLeft, StatusChip } from "@/components/ui/status-chip";
@@ -88,9 +89,10 @@ export default async function TrainerHome() {
             <ul className="divide-y divide-neutral-300">
               {rows.map((r) => (
                 <li key={r.id} className="flex items-center gap-3 py-2.5 text-[13.5px]">
-                  <span className="min-w-0 flex-1 truncate font-medium">
+                  <Link href={`/trainer/clients/${r.id}`}
+                        className="min-w-0 flex-1 truncate font-medium hover:underline">
                     {r.full_name}
-                  </span>
+                  </Link>
                   {r.status && <StatusChip status={r.status} />}
                   {r.days_left !== null && <DaysLeft days={r.days_left} />}
                 </li>
