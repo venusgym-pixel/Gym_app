@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatDate } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-21 · Attendance.
@@ -33,8 +32,7 @@ export default async function AttendancePage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: recent }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: recent }] = await Promise.all([
     db
       .from("attendance")
       .select(
@@ -65,12 +63,7 @@ export default async function AttendancePage() {
   const busiest = [...byDay.entries()].sort((a, b) => b[1].length - a[1].length)[0];
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-      current="/admin/attendance"
-    >
+    <>
       <PageHeader
         eyebrow="Attendance"
         title={`${today.length} check-ins today`}
@@ -145,6 +138,6 @@ export default async function AttendancePage() {
           )}
         </Card>
       </div>
-    </AdminShell>
+    </>
   );
 }

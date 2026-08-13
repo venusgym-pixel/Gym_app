@@ -1,5 +1,5 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { can } from "@/lib/auth/permissions";
 import { formatINR } from "@/lib/money";
 import { LeadCard, NewLeadForm } from "./client";
@@ -39,8 +39,7 @@ export default async function LeadsPage() {
   const db = await createServerDb();
   const role = actor.role as GymRole;
 
-  const [{ data: gym }, { data: leads }, { data: plans }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: leads }, { data: plans }] = await Promise.all([
     db
       .from("leads")
       .select("*, lead_activities(id, kind, body, created_at)")
@@ -91,9 +90,7 @@ export default async function LeadsPage() {
   const cardProps = { plans: planRows, planName, canEdit: mayEdit, today };
 
   return (
-    <AdminShell role={role} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/admin/leads">
+    <>
       <PageHeader
         eyebrow="Enquiries"
         title="Who to call"
@@ -218,6 +215,6 @@ export default async function LeadsPage() {
           )}
         </div>
       </div>
-    </AdminShell>
+    </>
   );
 }

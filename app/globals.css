@@ -174,11 +174,17 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Grid and flex children default to min-width: auto and refuse to shrink
-     below their content, so one long unbroken word — a member's email, a
-     pasted UPI reference — widens the whole column and triggers the sideways
-     scroll above. */
-  :where(.grid, .flex) > * {
+  /* Grid children default to min-width: auto and refuse to shrink below
+     their content, so one long unbroken word — a member's email, a pasted
+     UPI reference — widens the whole column and triggers the sideways
+     scroll above.
+
+     Scoped to grids inside main, and NOT applied to flex. Applying it to
+     every flex child collapsed the admin nav: its links are a horizontally
+     scrolling row of whitespace-nowrap items, and letting them shrink below
+     their text made every label overlap the next. A rule meant to prevent
+     overflow caused it. */
+  main :where(.grid) > * {
     min-width: 0;
   }
 

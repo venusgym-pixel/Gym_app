@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatDate, formatINR, formatINRCompact } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-17 · Payments ledger, with every invoice one click away.
@@ -36,8 +35,7 @@ export default async function PaymentsPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: payments }, { data: invoices }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: payments }, { data: invoices }] = await Promise.all([
     db
       .from("payments")
       .select(
@@ -62,12 +60,7 @@ export default async function PaymentsPage() {
     .reduce((s, r) => s + Number(r.amount_paise), 0);
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-      current="/admin/payments"
-    >
+    <>
       <PageHeader
         eyebrow="Payments"
         title={`${rows.length} ${rows.length === 1 ? "transaction" : "transactions"}`}
@@ -155,6 +148,6 @@ export default async function PaymentsPage() {
           </div>
         )}
       </Card>
-    </AdminShell>
+    </>
   );
 }

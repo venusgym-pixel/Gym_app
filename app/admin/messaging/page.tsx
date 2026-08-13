@@ -1,5 +1,5 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { can } from "@/lib/auth/permissions";
 import { channelStatus } from "@/lib/channels";
 import { formatDate } from "@/lib/money";
@@ -81,9 +81,8 @@ export default async function MessagingPage() {
   const db = await createServerDb();
   const role = actor.role as GymRole;
 
-  const [{ data: gym }, { data: rules }, { data: templates }, { data: outbox }] =
+  const [{ data: rules }, { data: templates }, { data: outbox }] =
     await Promise.all([
-      db.from("gyms").select("name").eq("id", actor.gymId).single(),
       db.from("reminder_rules").select("*").eq("gym_id", actor.gymId).order("offset_days"),
       db.from("message_templates").select("*").eq("gym_id", actor.gymId).order("key"),
       db
@@ -114,9 +113,7 @@ export default async function MessagingPage() {
   const whatsappTemplates = tplRows.filter((t) => t.channel === "whatsapp");
 
   return (
-    <AdminShell role={role} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/admin/messaging">
+    <>
       <PageHeader
         eyebrow="Messaging"
         title="Reminders"
@@ -229,7 +226,7 @@ export default async function MessagingPage() {
           </p>
         </Card>
       </div>
-    </AdminShell>
+    </>
   );
 }
 

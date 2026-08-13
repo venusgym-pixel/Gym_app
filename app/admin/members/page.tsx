@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
 import { DaysLeft, StatusChip } from "@/components/ui/status-chip";
 import { formatDate } from "@/lib/money";
-import type { GymRole, MembershipStatus } from "@/lib/db/database.types";
+import type {
+  MembershipStatus } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-02 · Members list.
@@ -53,8 +54,7 @@ export default async function MembersPage({
 
   const db = await createServerDb();
 
-  const [{ data: gym }, { data, error }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data, error }] = await Promise.all([
     db.rpc("members_list", {
       p_gym_id: actor.gymId,
       p_status: filter === "all" ? null : filter,
@@ -62,11 +62,10 @@ export default async function MembersPage({
     }),
   ]);
 
-  const gymName = (gym as { name: string } | null)?.name ?? "Your gym";
   const rows = (data ?? []) as Row[];
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email} gymName={gymName} current="/admin/members">
+    <>
       <PageHeader
         eyebrow="Members"
         title={`${rows.length} ${rows.length === 1 ? "member" : "members"}`}
@@ -160,6 +159,6 @@ export default async function MembersPage({
       <p className="mt-4 text-[12px] text-neutral-600">
         Member profiles, adding members and taking payments are the next build.
       </p>
-    </AdminShell>
+    </>
   );
 }

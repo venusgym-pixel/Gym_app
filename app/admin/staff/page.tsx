@@ -1,5 +1,5 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
 import { can, MATRIX, MODULES } from "@/lib/auth/permissions";
 import { InviteStaff, StaffRow } from "./client";
 import type { GymRole } from "@/lib/db/database.types";
@@ -29,8 +29,7 @@ export default async function StaffPage() {
   const db = await createServerDb();
   const role = actor.role as GymRole;
 
-  const [{ data: gym }, { data: staff }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: staff }] = await Promise.all([
     db
       .from("gym_users")
       .select("user_id, role, is_active, revoked_at, created_at, profiles(full_name, email, phone)")
@@ -52,9 +51,7 @@ export default async function StaffPage() {
   const mayEdit = can(role, "staff", "edit");
 
   return (
-    <AdminShell role={role} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/admin/staff">
+    <>
       <PageHeader
         eyebrow="Team"
         title="Staff"
@@ -178,6 +175,6 @@ export default async function StaffPage() {
           )}
         </div>
       </div>
-    </AdminShell>
+    </>
   );
 }

@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR } from "@/lib/money";
 import { CheckInButton, CollectPayment } from "./collect";
-import type { GymRole, MembershipStatus } from "@/lib/db/database.types";
+import type {
+  MembershipStatus } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-03 · Member profile.
@@ -36,8 +37,7 @@ export default async function MemberProfile({
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: member }, { data: plans }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: member }, { data: plans }] = await Promise.all([
     db.from("members")
       .select(`id, member_code, full_name, phone, email, date_of_birth, gender,
                joined_on, emergency_contact_name, emergency_contact_phone,
@@ -82,9 +82,7 @@ export default async function MemberProfile({
     .reduce((sum, p) => sum + Number(p.amount_paise), 0);
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/admin/members">
+    <>
       <PageHeader
         eyebrow={`${m.member_code} · joined ${formatDate(m.joined_on)}`}
         title={m.full_name}
@@ -211,6 +209,6 @@ export default async function MemberProfile({
           )}
         </Card>
       </div>
-    </AdminShell>
+    </>
   );
 }

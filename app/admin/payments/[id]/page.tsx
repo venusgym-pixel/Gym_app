@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell } from "@/components/admin/shell";
+
 import { formatDate, formatINRExact, SAC_FITNESS } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-19 · Tax invoice.
@@ -47,6 +46,9 @@ export default async function InvoicePage({
   const actor = await requireActor();
   const db = await createServerDb();
 
+  /* This page keeps its own gyms query, unlike the rest: the layout fetches
+     only the name, and a GST invoice needs the registered address and phone
+     on the face of it. */
   const [{ data: gym }, { data }] = await Promise.all([
     db.from("gyms").select("name, address, phone").eq("id", actor.gymId).single(),
     db
@@ -69,12 +71,7 @@ export default async function InvoicePage({
   const interState = Number(inv.igst_paise) > 0;
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={g?.name ?? "Your gym"}
-      current="/admin/payments"
-    >
+    <>
       <div className="mb-4 flex items-center justify-between print:hidden">
         <Link
           href="/admin/payments"
@@ -204,7 +201,7 @@ export default async function InvoicePage({
           </p>
         </footer>
       </article>
-    </AdminShell>
+    </>
   );
 }
 

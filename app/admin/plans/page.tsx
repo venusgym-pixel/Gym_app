@@ -1,7 +1,6 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
 import { formatINR, gstSplit } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-13 · Membership plans.
@@ -28,8 +27,7 @@ export default async function PlansPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: plans }, { data: counts }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: plans }, { data: counts }] = await Promise.all([
     db.from("plans").select("*").eq("gym_id", actor.gymId).order("sort_order"),
     db.from("memberships").select("plan_id, status").eq("gym_id", actor.gymId),
   ]);
@@ -42,12 +40,7 @@ export default async function PlansPage() {
   }
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-      current="/admin/plans"
-    >
+    <>
       <PageHeader
         eyebrow="Memberships"
         title="Plans"
@@ -96,7 +89,7 @@ export default async function PlansPage() {
           })}
         </div>
       )}
-    </AdminShell>
+    </>
   );
 }
 

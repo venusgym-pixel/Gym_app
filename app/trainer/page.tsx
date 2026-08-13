@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { DaysLeft, StatusChip } from "@/components/ui/status-chip";
 import { formatDate } from "@/lib/money";
-import type { GymRole, MembershipStatus } from "@/lib/db/database.types";
+import type {
+  MembershipStatus } from "@/lib/db/database.types";
 
 /* ============================================================================
    T-01 · Trainer today.
@@ -32,9 +33,8 @@ export default async function TrainerHome() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: members }, { data: recent }, { data: assigned }] =
+  const [{ data: members }, { data: recent }, { data: assigned }] =
     await Promise.all([
-      db.from("gyms").select("name").eq("id", actor.gymId).single(),
       db.rpc("members_list", {
         p_gym_id: actor.gymId,
         p_status: null,
@@ -72,12 +72,7 @@ export default async function TrainerHome() {
   const withoutPlan = rows.filter((r) => !onPlan.has(r.id));
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-      current="/trainer"
-    >
+    <>
       <PageHeader
         eyebrow="Trainer"
         title="Today"
@@ -154,6 +149,6 @@ export default async function TrainerHome() {
           )}
         </Card>
       </div>
-    </AdminShell>
+    </>
   );
 }

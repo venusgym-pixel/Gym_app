@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatINR, formatINRCompact, formatDate } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-30 / A-31 / A-32 · Reports.
@@ -43,8 +42,7 @@ export default async function ReportsPage({
   const params = await searchParams;
   const months = [3, 6, 12].includes(Number(params.months)) ? Number(params.months) : 6;
 
-  const [{ data: gym }, { data: summary }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: summary }] = await Promise.all([
     db.rpc("reports_summary", { p_gym_id: actor.gymId, p_months: months }),
   ]);
 
@@ -52,16 +50,14 @@ export default async function ReportsPage({
 
   if (!s) {
     return (
-      <AdminShell role={actor.role as GymRole} email={actor.email}
-                  gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                  current="/admin/reports">
+      <>
         <PageHeader eyebrow="Reports" title="Reports" />
         <Card>
           <EmptyState>
             You do not have access to reports. Ask the owner if you need them.
           </EmptyState>
         </Card>
-      </AdminShell>
+      </>
     );
   }
 
@@ -83,9 +79,7 @@ export default async function ReportsPage({
   );
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/admin/reports">
+    <>
       <PageHeader
         eyebrow="Reports"
         title="How the gym is doing"
@@ -245,7 +239,7 @@ export default async function ReportsPage({
         Attendance covers the last 28 days regardless of the range above —
         four whole weeks, so a Monday is always compared against four Mondays.
       </p>
-    </AdminShell>
+    </>
   );
 }
 

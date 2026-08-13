@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
-import type { GymRole } from "@/lib/db/database.types";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 
 /* ============================================================================
    T-06 · Workout plans.
@@ -47,8 +46,7 @@ export default async function PlansPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: plans }, { data: assignments }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: plans }, { data: assignments }] = await Promise.all([
     db
       .from("workout_plans")
       .select(
@@ -82,9 +80,7 @@ export default async function PlansPage() {
   }
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/trainer/plans">
+    <>
       <PageHeader
         eyebrow="Coaching"
         title="Workout plans"
@@ -191,6 +187,6 @@ export default async function PlansPage() {
         week&rsquo;s numbers stay true. Assign from{" "}
         <Link href="/trainer" className="underline">Today</Link>.
       </p>
-    </AdminShell>
+    </>
   );
 }

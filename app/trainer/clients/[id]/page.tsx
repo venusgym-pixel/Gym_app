@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatDate } from "@/lib/money";
 import { AssignPlan } from "./assign";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    T-05 · Client detail — the review half of the coaching loop.
@@ -42,8 +41,7 @@ export default async function ClientDetail({
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: member }, { data: plans }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: member }, { data: plans }] = await Promise.all([
     db.from("members")
       .select("id, full_name, member_code, phone, goal, fitness_level")
       .eq("gym_id", actor.gymId).eq("id", id).maybeSingle(),
@@ -107,12 +105,7 @@ export default async function ClientDetail({
   const measureRows = (measures ?? []) as { taken_on: string; weight_kg: string | null; body_fat_pct: string | null }[];
 
   return (
-    <AdminShell
-      role={actor.role as GymRole}
-      email={actor.email}
-      gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-      current="/trainer"
-    >
+    <>
       <PageHeader
         eyebrow={`${m.member_code}${m.goal ? ` · ${m.goal}` : ""}`}
         title={m.full_name}
@@ -225,6 +218,6 @@ export default async function ClientDetail({
           )}
         </Card>
       </div>
-    </AdminShell>
+    </>
   );
 }

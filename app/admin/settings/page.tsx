@@ -1,8 +1,7 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, PageHeader } from "@/components/admin/shell";
+import { Card, PageHeader } from "@/components/admin/shell";
 import { channelStatus } from "@/lib/channels";
 import { GymSettingsForm } from "./form";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-42 · Settings.
@@ -37,8 +36,7 @@ export default async function SettingsPage() {
   const channels = channelStatus();
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email}
-                gymName={g.name} current="/admin/settings">
+    <>
       <PageHeader
         eyebrow="Settings"
         title="Gym profile"
@@ -81,7 +79,7 @@ export default async function SettingsPage() {
           </Card>
         </div>
       </div>
-    </AdminShell>
+    </>
   );
 }
 

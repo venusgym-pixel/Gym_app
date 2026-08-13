@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { DaysLeft } from "@/components/ui/status-chip";
 import { formatDate, formatINRCompact } from "@/lib/money";
-import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
    A-01 · Admin dashboard.
@@ -48,24 +47,22 @@ export default async function AdminDashboard() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: summary }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: summary }] = await Promise.all([
     db.rpc("dashboard_summary", { p_gym_id: actor.gymId }),
   ]);
 
   const s = summary as Summary | null;
-  const gymName = (gym as { name: string } | null)?.name ?? "Your gym";
 
   const today = new Intl.DateTimeFormat("en-IN", {
     weekday: "long", day: "numeric", month: "long", timeZone: "Asia/Kolkata",
   }).format(new Date());
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email} gymName={gymName} current="/admin">
+    <>
       <PageHeader
         eyebrow={today}
         title={`${greeting()}`}
-        sub={`Here's where ${gymName} stands.`}
+        sub="Where the gym stands right now."
         actions={
           <Link
             href="/admin/members"
@@ -168,7 +165,7 @@ export default async function AdminDashboard() {
           </div>
         </>
       )}
-    </AdminShell>
+    </>
   );
 }
 

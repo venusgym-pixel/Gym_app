@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { AdminShell, Card, EmptyState, PageHeader } from "@/components/admin/shell";
-import type { GymRole } from "@/lib/db/database.types";
+import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
 
 /* ============================================================================
    T-05 · Exercise library.
@@ -35,8 +34,7 @@ export default async function ExercisesPage({
   const db = await createServerDb();
   const { muscle, equipment } = await searchParams;
 
-  const [{ data: gym }, { data: exercises }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
+  const [{ data: exercises }] = await Promise.all([
     db
       .from("exercises")
       .select("*")
@@ -65,9 +63,7 @@ export default async function ExercisesPage({
   };
 
   return (
-    <AdminShell role={actor.role as GymRole} email={actor.email}
-                gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
-                current="/trainer/exercises">
+    <>
       <PageHeader
         eyebrow="Coaching"
         title="Exercises"
@@ -127,7 +123,7 @@ export default async function ExercisesPage({
           ))}
         </div>
       )}
-    </AdminShell>
+    </>
   );
 }
 
