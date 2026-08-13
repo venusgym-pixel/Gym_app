@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fitwell",
+  "main": ".open-next/worker.js",
+
+  // nodejs_compat is required by the adapter: Next's server pulls in node:
+  // builtins (crypto, buffer, stream) that Workers only expose behind it.
+  // The compatibility date must be 2024-09-23 or later for that flag to
+  // behave as the adapter expects.
+  "compatibility_date": "2026-08-13",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS",
+
+    // Cloudflare Assets rewrites .html URLs by default — /diag.html was
+    // 307ing to /diag, which is not a route. The worker owns routing here,
+    // so assets must be served exactly as named.
+    "html_handling": "none",
+
+    // Likewise: a miss must fall through to the worker, which knows about
+    // Next's routes, rather than Assets answering with its own 404.
+    "not_found_handling": "none"
+  },
+
+  "observability": { "enabled": true },
+
+  // Secrets are NOT set here — this file is committed. Push them with
+  // `wrangler secret put`, listed in docs/SETUP.md.
+  "vars": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
+}

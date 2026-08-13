@@ -179,18 +179,73 @@ before you create a single external account.**
 
 ---
 
-## 7 · Deploy · ~5 min
+## 7 · Deploy · ~10 min
 
-1. Netlify → Add new site → import the GitHub repo. `netlify.toml` already sets
-   Node 22 and the build command.
-2. Site settings → Environment variables: add the same four from step 1, for
-   **all** contexts.
-3. Point deploy previews at a *separate* Supabase project. A preview build
-   against production is a live gym's records one bad migration away from harm.
+**Cloudflare Workers**, not Netlify. Netlify Free was the original choice
+because its terms permit commercial use where Vercel's Hobby plan does not.
+It was measurably the wrong one from India: a 38KB immutable asset took
+680–1140ms and came back `Cache-Status: fwd=miss` on *every* request — the
+edge never cached it, so every byte round-tripped to a US origin, and the page
+functions ran there too, crossing to Mumbai and back for each query.
+Cloudflare answers from an Indian PoP in ~300ms and runs the worker there.
 
-Netlify Free permits commercial use (Vercel's Hobby plan does not, and its
-crons cap at once per day, which cannot run the drain worker). Move to Vercel
-Pro when there's revenue.
+```bash
+npx wrangler login          # opens a browser, once
+npm run cf:preview          # build + run it locally at http://localhost:8787
+npm run cf:deploy           # build + ship
+```
+
+Then set the secrets. These are **not** in `wrangler.jsonc` — that file is
+committed:
+
+```bash
+npx wrangler secret put NEXT_PUBLIC_SUPABASE_URL
+npx wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+npx wrangler secret put CRON_SECRET
+```
+
+Locally, the same four live in `.dev.vars` (gitignored) so `cf:preview`
+works without touching production.
+
+**After the first deploy**, two things point at the old host and must move:
+
+1. **Supabase → Authentication → URL Configuration.** Site URL and Redirect
+   URLs (`https://YOUR-WORKER.workers.dev/**`), or `/verify` and
+   `/set-password` will bounce people to the Netlify domain.
+2. **The cron job's target.** It reads the URL from Vault, so this is one
+   statement, not three:
+
+   ```sql
+   select vault.update_secret(
+     (select id from vault.secrets where name = 'jobs_url'),
+     'https://YOUR-WORKER.workers.dev/api/jobs'
+   );
+   ```
+
+   Confirm within two minutes:
+
+   ```sql
+   select status, return_message, start_time
+     from cron.job_run_details order by start_time desc limit 3;
+   ```
+
+### Why middleware.ts and not proxy.ts
+
+Next 16 renamed the convention and pinned it to the Node runtime — the build
+rejects route segment config there with *"Proxy always runs on Node.js
+runtime"*. Cloudflare Workers cannot run Node middleware, so the OpenNext
+build fails with *"Node.js middleware is not currently supported"*
+([opennextjs-cloudflare#962](https://github.com/opennextjs/opennextjs-cloudflare/issues/962)).
+
+`middleware.ts` still works in Next 16 — a deprecation warning, nothing more
+— runs on the edge, and is what the adapter supports. Rename it back once
+OpenNext lands Node middleware support. Nothing in that file needs Node.
+
+### netlify.toml is still here
+
+Deliberately. It is the fallback until Cloudflare has run a full billing cycle
+without surprises, and it costs nothing to keep. Delete it once you are sure.
 
 ---
 

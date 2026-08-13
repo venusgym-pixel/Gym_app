@@ -47,3 +47,8 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 *.pem
+.dev.vars
+
+# OpenNext build output for Cloudflare
+.open-next/
+.wrangler/

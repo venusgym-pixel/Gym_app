@@ -30,6 +30,12 @@ const ALLOWED = [
 const SKIP_DIRS = new Set([
   "node_modules", ".next", ".git", "out", "build", "coverage",
   "prototype", "docs", ".netlify", ".vercel",
+  /* OpenNext's Cloudflare bundle and wrangler's dev scratch directory, for
+     the same reason as .next: generated output that inlines env values by
+     design. Scanning them reports the build rather than the source, and the
+     source is what this guard exists to police. Both are gitignored. */
+  ".open-next",
+  ".wrangler",
 ]);
 
 const PATTERNS: { re: RegExp; what: string }[] = [

@@ -23,7 +23,10 @@
     "guard:rls": "tsx scripts/guard-rls.ts",
     "guard:service-role": "tsx scripts/guard-service-role.ts",
     "verify": "npm run typecheck && npm run lint && npm run guard:rls && npm run guard:service-role && npm run test",
-    "bootstrap": "tsx scripts/bootstrap-gym.ts"
+    "bootstrap": "tsx scripts/bootstrap-gym.ts",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -36,6 +39,7 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.4",
+    "@opennextjs/cloudflare": "^1.20.2",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.19.0",
     "@types/react": "^19.2.0",
@@ -47,6 +51,7 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "wrangler": "^4.122.0"
   }
 }

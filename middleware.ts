@@ -4,8 +4,22 @@ import { homeFor, mayOpen, surfaceForPath } from "@/lib/auth/permissions";
 import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
-   Next 16 renamed the `middleware` convention to `proxy`; this file must
-   export a function named `proxy`. It does two jobs on every request:
+   Deliberately middleware.ts, and NOT Next 16's proxy.ts.
+
+   Next 16 renamed the convention and pinned it to the Node runtime — the
+   build rejects route segment config there with "Proxy always runs on
+   Node.js runtime". Cloudflare Workers cannot run Node middleware, so the
+   OpenNext build fails outright: "Node.js middleware is not currently
+   supported" (opennextjs-cloudflare#962).
+
+   middleware.ts still works in Next 16 — it emits a deprecation warning and
+   nothing more — runs on the edge, and is what the adapter supports. Rename
+   it back to proxy.ts once OpenNext lands Node middleware support.
+
+   Nothing in here needs Node: @supabase/ssr is edge-compatible and
+   getClaims() verifies the JWT with WebCrypto.
+
+   It does two jobs on every request:
 
    1. Refreshes the Supabase session. Server Components cannot write cookies,
       so without this the access token silently expires and users get logged
@@ -30,7 +44,7 @@ function isPublic(pathname: string): boolean {
   return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/auth/");
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
