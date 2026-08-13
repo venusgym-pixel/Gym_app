@@ -72,10 +72,15 @@ export default async function TrainerHome() {
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile value={active.length} label="Training members" />
+        {/* Clients, not "active memberships": the roster is the trainer's
+            world, and a lapsed client is still theirs to chase. */}
+        <StatTile value={rows.length} label="Your clients"
+                  hint={active.length < rows.length
+                    ? `${rows.length - active.length} not currently active`
+                    : "all memberships live"} />
         <StatTile value={visits.length} label="Recent check-ins" />
         <StatTile value={0} label="Sessions today" hint="needs scheduling" />
-        <StatTile value={0} label="Plans assigned" hint="needs workouts" />
+        <StatTile value={0} label="Plans assigned" hint="needs a plans screen" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
