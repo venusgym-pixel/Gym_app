@@ -38,18 +38,25 @@ export function AdminShell({
   role,
   gymName,
   current,
+  email,
   children,
 }: {
   role: GymRole;
   gymName: string;
   current: string;
+  /** Shown in the sidebar footer so it is obvious which account is active —
+   *  reception and the owner often share a machine. */
+  email?: string | null;
   children: React.ReactNode;
 }) {
   const visible = NAV.filter((i) => can(role, i.module, "view"));
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
-      <aside className="border-b border-neutral-300 bg-surface md:min-h-dvh md:border-r md:border-b-0">
+      {/* Sticky and exactly viewport-height on desktop: the sidebar stretching
+          with the page would push Sign out hundreds of pixels below the fold
+          on a long members table. */}
+      <aside className="flex flex-col border-b border-neutral-300 bg-surface md:sticky md:top-0 md:h-dvh md:overflow-y-auto md:border-r md:border-b-0">
         <div className="px-5 py-5">
           <div className="text-[17px] font-bold tracking-[-0.02em]">{gymName}</div>
           <div className="mt-0.5 font-mono text-[10px] tracking-[0.1em] text-neutral-600 uppercase">
@@ -86,9 +93,40 @@ export function AdminShell({
             ),
           )}
         </nav>
+
+        {/* Sign out. A plain form post, so it works even if hydration failed —
+            which is precisely when someone wants a way out. */}
+        <div className="mt-auto hidden border-t border-neutral-300 px-5 py-4 md:block">
+          {email && (
+            <p className="mb-2 truncate text-[11.5px] text-neutral-600" title={email}>
+              {email}
+            </p>
+          )}
+          <form action="/api/auth/signout" method="post">
+            <button
+              type="submit"
+              className="w-full rounded-md border border-neutral-300 px-3 py-2 text-[12.5px] font-semibold text-neutral-800 transition-colors hover:bg-neutral-200"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
       </aside>
 
-      <main className="min-w-0 px-6 py-7 md:px-9">{children}</main>
+      <main className="min-w-0 px-6 py-7 md:px-9">
+        {children}
+
+        {/* On narrow screens the sidebar collapses to a scrolling row, so the
+            footer would be off-screen. Repeat the control at the end. */}
+        <form action="/api/auth/signout" method="post" className="mt-10 md:hidden">
+          <button
+            type="submit"
+            className="w-full rounded-md border border-neutral-300 px-3 py-2.5 text-[13px] font-semibold text-neutral-800"
+          >
+            Sign out{email ? ` · ${email}` : ""}
+          </button>
+        </form>
+      </main>
     </div>
   );
 }

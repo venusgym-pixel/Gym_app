@@ -71,6 +71,7 @@ export default async function InvoicePage({
   return (
     <AdminShell
       role={actor.role as GymRole}
+      email={actor.email}
       gymName={g?.name ?? "Your gym"}
       current="/admin/payments"
     >

@@ -67,6 +67,7 @@ export default async function AttendancePage() {
   return (
     <AdminShell
       role={actor.role as GymRole}
+      email={actor.email}
       gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
       current="/admin/attendance"
     >

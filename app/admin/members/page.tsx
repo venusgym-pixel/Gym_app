@@ -66,7 +66,7 @@ export default async function MembersPage({
   const rows = (data ?? []) as Row[];
 
   return (
-    <AdminShell role={actor.role as GymRole} gymName={gymName} current="/admin/members">
+    <AdminShell role={actor.role as GymRole} email={actor.email} gymName={gymName} current="/admin/members">
       <PageHeader
         eyebrow="Members"
         title={`${rows.length} ${rows.length === 1 ? "member" : "members"}`}

@@ -47,6 +47,9 @@ export interface Actor {
   userId: string;
   gymId: string;
   role: string;
+  /** From the verified token. Shown in the UI so it is always obvious which
+   *  account is signed in — front-desk machines get shared. */
+  email: string | null;
 }
 
 /**
@@ -72,8 +75,10 @@ export async function currentActor(): Promise<Actor | null> {
   const gymId = typeof appMeta.gym_id === "string" ? appMeta.gym_id : null;
   const role = typeof appMeta.gym_role === "string" ? appMeta.gym_role : null;
 
+  const email = typeof claims.email === "string" ? claims.email : null;
+
   if (!userId || !gymId || !role) return null;
-  return { userId, gymId, role };
+  return { userId, gymId, role, email };
 }
 
 /** Same, but throws — for routes that have already been gated by the proxy. */

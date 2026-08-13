@@ -82,7 +82,7 @@ export default async function MemberProfile({
     .reduce((sum, p) => sum + Number(p.amount_paise), 0);
 
   return (
-    <AdminShell role={actor.role as GymRole}
+    <AdminShell role={actor.role as GymRole} email={actor.email}
                 gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
                 current="/admin/members">
       <PageHeader

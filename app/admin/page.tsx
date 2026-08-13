@@ -61,7 +61,7 @@ export default async function AdminDashboard() {
   }).format(new Date());
 
   return (
-    <AdminShell role={actor.role as GymRole} gymName={gymName} current="/admin">
+    <AdminShell role={actor.role as GymRole} email={actor.email} gymName={gymName} current="/admin">
       <PageHeader
         eyebrow={today}
         title={`${greeting()}`}

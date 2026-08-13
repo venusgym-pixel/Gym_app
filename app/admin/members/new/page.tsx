@@ -12,7 +12,7 @@ export default async function NewMemberPage() {
   const { data: gym } = await db.from("gyms").select("name").eq("id", actor.gymId).single();
 
   return (
-    <AdminShell role={actor.role as GymRole}
+    <AdminShell role={actor.role as GymRole} email={actor.email}
                 gymName={(gym as { name: string } | null)?.name ?? "Your gym"}
                 current="/admin/members">
       <PageHeader
