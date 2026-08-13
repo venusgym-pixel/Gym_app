@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fitwell · viewport check</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 16px;
+    background: #191612; color: #f9f4ed;
+    font: 15px/1.45 system-ui, -apple-system, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  p.sub { margin: 0 0 16px; color: #a29a8d; font-size: 13px; }
+
+  /* A 300px ruler. If the app's viewport is honest, this is 300 CSS px wide
+     and roughly 3/4 the width of a typical phone. If the viewport has been
+     forced to ~980px, it renders as a short stub — which is the whole
+     diagnosis, visible without reading a single number. */
+  .ruler {
+    width: 300px; height: 26px; border-radius: 4px;
+    background: repeating-linear-gradient(90deg,
+      #f6a06b 0 50px, #8a5733 50px 100px);
+    margin-bottom: 6px;
+  }
+  .ruler-note { color: #a29a8d; font-size: 12px; margin: 0 0 18px; }
+
+  table { border-collapse: collapse; width: 100%; }
+  td { padding: 7px 0; border-bottom: 1px solid #2e2a24; vertical-align: top; }
+  td.k { color: #a29a8d; padding-right: 12px; white-space: nowrap; }
+  td.v { font-weight: 700; font-family: ui-monospace, monospace; }
+  .verdict {
+    margin: 18px 0 0; padding: 14px; border-radius: 10px;
+    font-weight: 700; font-size: 15px;
+  }
+  .ok  { background: #2b3320; color: #cfe0b4; }
+  .bad { background: #4a2a18; color: #ffcfae; }
+</style>
+</head>
+<body>
+  <h1>Viewport check</h1>
+  <p class="sub">Screenshot this whole page and send it back.</p>
+
+  <div class="ruler"></div>
+  <p class="ruler-note">
+    The bar above is exactly 300 CSS pixels. On a phone it should reach most
+    of the way across the screen.
+  </p>
+
+  <table id="out"></table>
+  <div class="verdict" id="verdict"></div>
+
+<script>
+  var rows = [
+    ["Layout width (innerWidth)", window.innerWidth + " px"],
+    ["Visual viewport", window.visualViewport
+        ? Math.round(window.visualViewport.width) + " px" : "n/a"],
+    ["Screen width", screen.width + " px"],
+    ["Device pixel ratio", window.devicePixelRatio],
+    ["Display mode", window.matchMedia("(display-mode: standalone)").matches
+        ? "standalone (installed)" : "browser tab"],
+    ["Safe area bottom", getComputedStyle(document.documentElement)
+        .getPropertyValue("--probe-sab") || "measuring…"],
+    ["User agent", navigator.userAgent],
+  ];
+
+  var t = document.getElementById("out");
+  rows.forEach(function (r) {
+    var tr = t.insertRow();
+    tr.insertCell().outerHTML = '<td class="k">' + r[0] + "</td>";
+    tr.insertCell().outerHTML = '<td class="v">' + r[1] + "</td>";
+  });
+
+  /* The number that matters. A phone reports 320–460 here. Anything near 980
+     means the viewport meta was ignored, which is what makes the whole app
+     render as a small centred strip. */
+  var w = window.innerWidth;
+  var v = document.getElementById("verdict");
+  if (w > 700) {
+    v.className = "verdict bad";
+    v.textContent = "PROBLEM: layout width is " + w + " px. A phone should "
+      + "report 320–460. The viewport meta tag is being ignored — almost "
+      + "always Chrome's “Desktop site” setting.";
+  } else {
+    v.className = "verdict ok";
+    v.textContent = "Viewport looks correct at " + w
+      + " px. The problem is elsewhere — send this screenshot.";
+  }
+</script>
+</body>
+</html>

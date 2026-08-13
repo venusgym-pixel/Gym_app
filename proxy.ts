@@ -130,6 +130,10 @@ export const config = {
       shared secret, /api/checkin and /api/qr on the caller's session — so
       nothing is lost by skipping them here.
     */
-    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff2?)$).*)",
+    /* .html is in the list because a static file under public/ is otherwise
+       matched like a page and redirected to /login — which made the viewport
+       diagnostic unreachable on the one device that needed it. No app route
+       ends in .html; every page is a Next route. */
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|.*\\.(?:html|svg|png|jpg|jpeg|gif|webp|woff2?)$).*)",
   ],
 };

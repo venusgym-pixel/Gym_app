@@ -45,11 +45,39 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+/*
+  Some Android hosts ignore the viewport meta tag and lay the page out at a
+  fixed ~980px, then scale the result down to fit. Everything then renders as
+  a tiny centred strip: correct CSS, wrong canvas. The two that do it are
+  Chrome with "Desktop site" enabled, and a plain WebView shortcut — what
+  "Add to home screen" produces in Samsung Internet, Mi Browser and most
+  in-app browsers, as opposed to Chrome's Install app.
+
+  Rewriting the meta at runtime forces a re-layout at the real width. The
+  guard is what keeps this from firing on a genuine tablet or laptop: it
+  needs a viewport far wider than 700px while the physical screen is
+  narrower than that, which only happens when the layout width is a fiction.
+
+  Inline and before paint, so the correction lands before the first frame
+  rather than as a visible reflow.
+*/
+const FIX_VIEWPORT = `(function(){try{
+  var w=window.innerWidth, s=window.screen&&window.screen.width;
+  if(w>700 && s && s<700){
+    var m=document.querySelector('meta[name=viewport]');
+    if(m){m.setAttribute('content',
+      'width=device-width, initial-scale=1, viewport-fit=cover');}
+  }
+}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={archivo.variable}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FIX_VIEWPORT }} />
+      </head>
       <body>{children}</body>
     </html>
   );
