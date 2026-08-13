@@ -154,11 +154,32 @@
     border-color: var(--app-border);
   }
 
+  /* One element wider than the viewport makes EVERY screen look broken: the
+     page scrolls sideways and each card reads as clipped on the right while
+     keeping its padding on the left. It looks like a broken layout rather
+     than one wrong element, which is exactly how long it takes to find.
+
+     clip, not hidden. overflow-x: hidden turns the element into a scroll
+     container, which silently kills position: sticky — and the admin sidebar
+     and the member tab bar both depend on it. */
+  html, body {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   body {
     background: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Grid and flex children default to min-width: auto and refuse to shrink
+     below their content, so one long unbroken word — a member's email, a
+     pasted UPI reference — widens the whole column and triggers the sideways
+     scroll above. */
+  :where(.grid, .flex) > * {
+    min-width: 0;
   }
 
   /* The member app inverts to the dark surface. Applied on the (member)

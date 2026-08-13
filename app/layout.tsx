@@ -39,9 +39,21 @@ export const viewport: Viewport = {
   themeColor: "#191612",
   width: "device-width",
   initialScale: 1,
-  /* The member app is a full-bleed phone UI; the set logger and QR scanner
-     both break if the viewport rubber-bands on zoom. */
-  maximumScale: 1,
+  /*
+    maximumScale was 1, to stop the set logger and QR scanner rubber-banding
+    on a stray pinch. That was the wrong trade twice over.
+
+    It is an accessibility failure outright — members read small print, and
+    an older member who pinches to enlarge a renewal date should be able to.
+    Android's "Force enable zoom" accessibility setting exists precisely to
+    override pages that do this, and when Chrome overrides a page's viewport
+    it stops honouring the rest of it, which is one way a page ends up laid
+    out at the 980px desktop fallback.
+
+    Rubber-banding is a layout problem and belongs in CSS (overscroll-behavior
+    and touch-action), not in a tag that disables zoom for everyone.
+  */
+  maximumScale: 5,
   viewportFit: "cover",
 };
 
@@ -74,11 +86,13 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={archivo.variable}>
+    /* h-full / min-h-full so a short screen still fills the phone instead of
+       ending halfway down with a void beneath it. */
+    <html lang="en" className={`${archivo.variable} h-full`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: FIX_VIEWPORT }} />
       </head>
-      <body>{children}</body>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }
