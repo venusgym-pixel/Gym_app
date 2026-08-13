@@ -44,20 +44,22 @@
   command = "npm run build"
 
 # ── security headers ────────────────────────────────────────────────────────
-# The member app handles health data and payment redirects; progress photos are
-# served from private buckets via signed URLs.
+#
+# The real set lives in next.config.ts, NOT here. These [[headers]] rules only
+# reach assets Netlify's CDN serves directly; every page goes through the
+# Next.js function, and function responses do not get them. The first deploy
+# proved it — /login came back with no X-Frame-Options while the CSS beside it
+# had all four, which is precisely backwards: the page is the framable thing.
+#
+# What remains below covers static assets, which the Next config cannot reach
+# for the same reason in reverse. Keep the two in step.
+#
+# Strict-Transport-Security is Netlify's own (it sends it with preload), so it
+# is set in neither place.
 
 [[headers]]
-  for = "/*"
+  for = "/_next/static/*"
   [headers.values]
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "geolocation=(), microphone=(), payment=(self)"
-    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-
-# The QR scanner needs the camera; scope that to the check-in route only.
-[[headers]]
-  for = "/m/checkin/*"
-  [headers.values]
-    Permissions-Policy = "camera=(self), geolocation=(), microphone=()"
