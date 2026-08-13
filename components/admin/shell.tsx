@@ -151,7 +151,8 @@ export function Card({
 export function StatTile({
   value, label, hint, tone = "plain",
 }: {
-  value: string | number;
+  /** Usually a number, but the member profile puts a StatusChip here. */
+  value: React.ReactNode;
   label: string;
   hint?: string;
   tone?: "plain" | "warn" | "good";

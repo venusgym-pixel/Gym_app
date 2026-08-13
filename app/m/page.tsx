@@ -1,18 +1,259 @@
-import { requireActor } from "@/lib/db/server";
+import Link from "next/link";
+import { createServerDb, requireActor } from "@/lib/db/server";
+import { MemberTabBar } from "@/components/member/nav";
+import { Screen } from "@/components/ui/primitives";
+import { StatusChip } from "@/components/ui/status-chip";
+import { formatDate, formatINR } from "@/lib/money";
+import type { MembershipStatus } from "@/lib/db/database.types";
 
-/* Placeholder home for the Member surface. Replaced in M2/M3 by the real
-   dashboard; exists now so role routing in proxy.ts has a destination. */
+/* ============================================================================
+   M-01 · Member home.
+
+   The daily hub. Ordered by what the member actually opens the app for:
+   check in, see how long is left, see their streak.
+
+   Workout, diet and progress cards from the design are absent because those
+   tables do not exist yet (Phase 2/3). Rather than render dead placeholders,
+   the screen shows what is real and says plainly what is coming.
+   ========================================================================= */
+
+export const dynamic = "force-dynamic";
+
 export default async function MemberHome() {
   const actor = await requireActor();
+  const db = await createServerDb();
+
+  const { data: member } = await db
+    .from("members")
+    .select(
+      `id, full_name, member_code,
+       memberships ( status, expires_on, started_on, plans ( name, price_paise ) )`,
+    )
+    .eq("gym_id", actor.gymId)
+    .eq("user_id", actor.userId)
+    .maybeSingle();
+
+  const m = member as unknown as {
+    id: string;
+    full_name: string;
+    member_code: string;
+    memberships: {
+      status: MembershipStatus;
+      expires_on: string;
+      started_on: string;
+      plans: { name: string; price_paise: string } | null;
+    }[];
+  } | null;
+
+  if (!m) {
+    return (
+      <>
+        <Screen center>
+          <h1 className="text-[26px]">No membership found</h1>
+          <p className="mt-2 text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+            Your account isn&rsquo;t linked to a member record yet. Reception can
+            fix this in a moment.
+          </p>
+        </Screen>
+        <MemberTabBar current="/m" />
+      </>
+    );
+  }
+
+  const [{ data: streakRow }, { data: visitsRow }, { data: recent }, { data: listRows }] =
+    await Promise.all([
+      db.rpc("attendance_streak", { p_gym_id: actor.gymId, p_member_id: m.id }),
+      db.rpc("visits_this_month", { p_gym_id: actor.gymId, p_member_id: m.id }),
+      db
+        .from("attendance")
+        .select("checked_in_at")
+        .eq("gym_id", actor.gymId)
+        .eq("member_id", m.id)
+        .order("checked_in_at", { ascending: false })
+        .limit(1),
+      /* RLS narrows this to the caller's own row, so it is the member's own
+         record with days_left already computed by the database. */
+      db.rpc("members_list", {
+        p_gym_id: actor.gymId,
+        p_status: null,
+        p_search: null,
+      }),
+    ]);
+
+  const self = ((listRows ?? []) as { id: string; days_left: number | null }[]).find(
+    (r) => r.id === m.id,
+  );
+
+  const streak = Number(streakRow ?? 0);
+  const visits = Number(visitsRow ?? 0);
+  const lastVisit = (recent ?? [])[0]?.checked_in_at as string | undefined;
+
+  const term = [...(m.memberships ?? [])].sort((a, b) =>
+    a.expires_on < b.expires_on ? 1 : -1,
+  )[0];
+
+  /* days_left comes from Postgres (members_list), not the Node clock. A
+     membership expiring today in Asia/Kolkata would read as tomorrow if this
+     server ran UTC — and "1 day left" on a lapsed membership is how someone
+     gets turned away at the door after the app told them they were fine. */
+  const daysLeft = (self as { days_left: number | null } | undefined)?.days_left ?? null;
+
+  /* Progress along the term. Derived from two fixed dates and days_left, so
+     no clock is read here either. Clamped, so a long-lapsed membership does
+     not draw a bar wider than its track. */
+  const termDays = term
+    ? Math.max(
+        1,
+        Math.round(
+          (Date.parse(term.expires_on) - Date.parse(term.started_on)) / 86_400_000,
+        ),
+      )
+    : 1;
+  const pct =
+    daysLeft === null
+      ? 0
+      : Math.min(100, Math.max(0, ((termDays - daysLeft) / termDays) * 100));
+
+  const firstName = m.full_name.split(" ")[0];
+
   return (
-    <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center gap-3 px-6">
-      <p className="font-mono text-[11px] tracking-[0.12em] text-neutral-600">
-        MEMBER · Achieve fitness goals
-      </p>
-      <h1 className="text-4xl">Signed in</h1>
-      <p className="text-sm text-neutral-700">
-        Role <strong>{actor.role}</strong> · gym <code>{actor.gymId.slice(0, 8)}</code>
-      </p>
-    </main>
+    <>
+      <Screen className="gap-3.5 pb-32">
+        <header className="flex items-center gap-3">
+          <div
+            className="grid h-11 w-11 place-items-center rounded-pill text-[15px] font-semibold"
+            style={{ background: "var(--color-app-avatar)", color: "var(--color-app-accent)" }}
+          >
+            {firstName.slice(0, 2).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <p className="text-[12px]" style={{ color: "var(--app-ink-55)" }}>
+              {m.member_code}
+            </p>
+            <h1 className="text-[20px] leading-tight">{firstName}</h1>
+          </div>
+        </header>
+
+        {/* streak */}
+        <div
+          className="relative flex items-center gap-4 overflow-hidden rounded-lg px-5 py-4"
+          style={{ background: "var(--app-streak)" }}
+        >
+          <div
+            className="absolute -top-8 -right-8 h-28 w-28 rounded-pill"
+            style={{ background: "rgb(255 255 255 / 0.09)" }}
+            aria-hidden
+          />
+          <span className="text-[46px] leading-none font-bold tracking-[-0.02em] text-white">
+            {streak}
+          </span>
+          <div className="flex flex-col">
+            <span className="text-[13px] font-semibold text-white">
+              day{streak === 1 ? "" : "s"} in a row
+            </span>
+            <span className="text-[11.5px]" style={{ color: "rgb(255 255 255 / 0.75)" }}>
+              {visits} visit{visits === 1 ? "" : "s"} this month
+              {lastVisit ? ` · last ${formatDate(lastVisit)}` : ""}
+            </span>
+          </div>
+        </div>
+
+        {/* membership */}
+        <div className="rounded-lg p-5" style={{ background: "var(--color-app-surface)" }}>
+          {term ? (
+            <>
+              <div className="flex items-center justify-between">
+                <span className="text-[13.5px] font-semibold">
+                  {term.plans?.name} · <StatusChip status={term.status} />
+                </span>
+                <span className="text-[20px] font-semibold text-app-accent">
+                  {daysLeft !== null && daysLeft >= 0 ? daysLeft : 0}
+                  <span
+                    className="text-[12px] font-normal"
+                    style={{ color: "var(--app-ink-55)" }}
+                  >
+                    {" "}
+                    days left
+                  </span>
+                </span>
+              </div>
+
+              <div
+                className="mt-3 h-2 overflow-hidden rounded-pill"
+                style={{ background: "rgb(249 244 237 / 0.12)" }}
+              >
+                <div
+                  className="h-full bg-app-accent"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+
+              <div
+                className="mt-2.5 flex justify-between text-[11.5px]"
+                style={{ color: "var(--app-ink-50)" }}
+              >
+                <span>{formatDate(term.started_on)}</span>
+                <span>Expires {formatDate(term.expires_on)}</span>
+              </div>
+
+              {daysLeft !== null && daysLeft <= 7 && (
+                <Link
+                  href="/m/membership"
+                  className="mt-4 block rounded-pill bg-app-accent py-3 text-center text-[15px] font-bold text-app-accent-ink"
+                >
+                  {daysLeft < 0 ? "Renew now" : `Renew — ${daysLeft}d left`}
+                </Link>
+              )}
+            </>
+          ) : (
+            <p className="text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
+              No active membership. Speak to reception to get started.
+            </p>
+          )}
+        </div>
+
+        {/* check in */}
+        <Link
+          href="/m/checkin"
+          className="rounded-lg px-5 py-4"
+          style={{ background: "var(--color-app-surface)" }}
+        >
+          <p className="text-[11px] tracking-[0.08em] text-app-good uppercase">
+            At the gym?
+          </p>
+          <p className="mt-1.5 text-[22px]">Scan to check in</p>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--app-ink-55)" }}>
+            Point your camera at the code on the reception counter.
+          </p>
+        </Link>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          <Tile href="/m/membership" label="Membership"
+                value={term?.plans ? formatINR(term.plans.price_paise) : "—"} />
+          <Tile href="/m/attendance" label="Visits this month" value={String(visits)} />
+        </div>
+
+        <p className="mt-1 text-center text-[11.5px]" style={{ color: "var(--app-ink-40)" }}>
+          Workouts, diet and progress arrive in the next release.
+        </p>
+      </Screen>
+
+      <MemberTabBar current="/m" />
+    </>
+  );
+}
+
+function Tile({ href, label, value }: { href: string; label: string; value: string }) {
+  return (
+    <Link
+      href={href}
+      className="rounded-md px-4 py-3.5"
+      style={{ background: "var(--color-app-surface)" }}
+    >
+      <div className="text-[20px] font-bold tracking-[-0.02em]">{value}</div>
+      <div className="mt-0.5 text-[11.5px]" style={{ color: "var(--app-ink-55)" }}>
+        {label}
+      </div>
+    </Link>
   );
 }

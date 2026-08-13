@@ -205,6 +205,51 @@ describe("role permissions within a gym", () => {
     expect(rows.map((r) => r.id)).not.toContain(other.id);
   });
 
+  /* The mirror image of the isolation tests, and just as necessary.
+     "Returns no rows" passes every leak test perfectly — which is how the
+     member app came to show "No active membership" to paying members. */
+  it("a member CAN read their own membership, payments and attendance", async () => {
+    await db.sql(
+      `insert into attendance (gym_id, member_id, method) values ($1, $2, 'qr')`,
+      [a.gymId, a.memberId],
+    );
+    await db.sql(
+      `insert into payments (gym_id, member_id, membership_id, amount_paise, method, status)
+       values ($1, $2, $3, 850000, 'upi', 'paid')`,
+      [a.gymId, a.memberId, a.membershipId],
+    );
+
+    const actor = { userId: a.memberUserId, gymId: a.gymId, role: "member" as const };
+
+    const memberships = await db.as(actor, `select id from memberships`);
+    expect(memberships, "member cannot see their own membership").toHaveLength(1);
+
+    const payments = await db.as(actor, `select id from payments`);
+    expect(payments, "member cannot see their own payments").toHaveLength(1);
+
+    const visits = await db.as(actor, `select id from attendance`);
+    expect(visits, "member cannot see their own attendance").toHaveLength(1);
+  });
+
+  it("but still sees nothing belonging to another member", async () => {
+    const [other] = await db.sql<{ id: string }>(
+      `insert into members (gym_id, member_code, full_name, phone)
+       values ($1, 'M-900', 'Other Person', '+919000000900') returning id`,
+      [a.gymId],
+    );
+    await db.sql(
+      `insert into memberships (gym_id, member_id, plan_id, status, started_on, expires_on, price_paise)
+       values ($1, $2, $3, 'active', current_date, current_date + 30, 320000)`,
+      [a.gymId, other.id, a.planId],
+    );
+
+    const rows = await db.as<{ member_id: string }>(
+      { userId: a.memberUserId, gymId: a.gymId, role: "member" },
+      `select member_id from memberships`,
+    );
+    expect(rows.every((r) => r.member_id === a.memberId)).toBe(true);
+  });
+
   it("a member sees visible plans (so M-03 renew works) but not hidden ones", async () => {
     await db.sql(
       `insert into plans (gym_id, name, duration_days, price_paise, is_visible_to_members)
