@@ -8,15 +8,13 @@ import type { GymRole, MembershipStatus } from "@/lib/db/database.types";
 /* ============================================================================
    T-01 · Trainer today.
 
-   Honest about its limits. Sessions, workout plans and client assignment all
-   need Phase 2 tables (trainer_clients, pt_sessions, workout_plans) that do
-   not exist yet, so there is no schedule to show.
+   The roster, plus what has happened lately. Scheduled PT sessions are the
+   one thing genuinely missing — pt_sessions does not exist — so there is no
+   diary here and no tile pretending to be one.
 
-   What a trainer CAN see today is who trains here and who has stopped coming
-   — which is the part of their job the current data supports. The permission
-   matrix gives trainers scope 'assigned' on members, so RLS returns nothing
-   from the gym-wide policy until assignment exists; the empty state says so
-   rather than looking broken.
+   The permission matrix gives trainers scope 'assigned' on members, so RLS
+   returns nothing from the gym-wide policy until a trainer_clients row
+   exists; the empty state says so rather than looking broken.
    ========================================================================= */
 
 export const dynamic = "force-dynamic";
@@ -34,20 +32,28 @@ export default async function TrainerHome() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: gym }, { data: members }, { data: recent }] = await Promise.all([
-    db.from("gyms").select("name").eq("id", actor.gymId).single(),
-    db.rpc("members_list", {
-      p_gym_id: actor.gymId,
-      p_status: null,
-      p_search: null,
-    }),
-    db
-      .from("attendance")
-      .select("id, checked_in_at, members(full_name)")
-      .eq("gym_id", actor.gymId)
-      .order("checked_in_at", { ascending: false })
-      .limit(10),
-  ]);
+  const [{ data: gym }, { data: members }, { data: recent }, { data: assigned }] =
+    await Promise.all([
+      db.from("gyms").select("name").eq("id", actor.gymId).single(),
+      db.rpc("members_list", {
+        p_gym_id: actor.gymId,
+        p_status: null,
+        p_search: null,
+      }),
+      db
+        .from("attendance")
+        .select("id, checked_in_at, members(full_name)")
+        .eq("gym_id", actor.gymId)
+        .order("checked_in_at", { ascending: false })
+        .limit(10),
+      /* RLS keeps this to the trainer's own clients, so the count is theirs
+         and not the gym's. */
+      db
+        .from("workout_assignments")
+        .select("member_id, workout_plans(name)")
+        .eq("gym_id", actor.gymId)
+        .is("ends_on", null),
+    ]);
 
   const rows = (members ?? []) as Row[];
   const visits = (recent ?? []) as unknown as {
@@ -57,6 +63,13 @@ export default async function TrainerHome() {
   }[];
 
   const active = rows.filter((r) => r.status === "active" || r.status === "expiring");
+
+  const plans = (assigned ?? []) as unknown as {
+    member_id: string;
+    workout_plans: { name: string } | null;
+  }[];
+  const onPlan = new Set(plans.map((a) => a.member_id));
+  const withoutPlan = rows.filter((r) => !onPlan.has(r.id));
 
   return (
     <AdminShell
@@ -68,7 +81,15 @@ export default async function TrainerHome() {
       <PageHeader
         eyebrow="Trainer"
         title="Today"
-        sub="Sessions and workout plans arrive with the next release."
+        sub="Your clients, and who has been in."
+        actions={
+          <Link
+            href="/trainer/plans"
+            className="rounded-pill border border-neutral-300 px-4 py-2 text-[13px] font-semibold text-neutral-800 hover:bg-neutral-200"
+          >
+            Workout plans
+          </Link>
+        }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -79,16 +100,21 @@ export default async function TrainerHome() {
                     ? `${rows.length - active.length} not currently active`
                     : "all memberships live"} />
         <StatTile value={visits.length} label="Recent check-ins" />
-        <StatTile value={0} label="Sessions today" hint="needs scheduling" />
-        <StatTile value={0} label="Plans assigned" hint="needs a plans screen" />
+        <StatTile value={plans.length} label="On a workout plan" />
+        <StatTile
+          value={withoutPlan.length}
+          label="Without a plan"
+          tone={withoutPlan.length > 0 ? "warn" : "good"}
+          hint={withoutPlan.length > 0 ? "nothing shows on their phone" : "everyone has one"}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="Members">
           {rows.length === 0 ? (
             <EmptyState>
-              No clients assigned to you yet. Assignment arrives with the
-              trainer&ndash;client schema.
+              No clients assigned to you yet. An owner or manager links members
+              to you from the member&rsquo;s profile.
             </EmptyState>
           ) : (
             <ul className="divide-y divide-neutral-300">
@@ -98,6 +124,11 @@ export default async function TrainerHome() {
                         className="min-w-0 flex-1 truncate font-medium hover:underline">
                     {r.full_name}
                   </Link>
+                  {!onPlan.has(r.id) && (
+                    <span className="rounded-sm bg-accent-200 px-1.5 py-px font-mono text-[9px] tracking-wider text-accent-800 uppercase">
+                      no plan
+                    </span>
+                  )}
                   {r.status && <StatusChip status={r.status} />}
                   {r.days_left !== null && <DaysLeft days={r.days_left} />}
                 </li>

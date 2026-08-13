@@ -11,11 +11,13 @@ import { Cta, Screen } from "@/components/ui/primitives";
    is standing at the door and needs an answer. Routing between screens would
    put a navigation between the scan and the answer.
 
-   BarcodeDetector is used where available (Chrome, Android) and the manual
-   entry field is the fallback everywhere else — notably iOS Safari, which
-   still has no BarcodeDetector. A camera that silently does nothing on
-   iPhone would strand a large share of members, so the fallback is visible
-   from the start rather than hidden behind a failure.
+   Two QR decoders: the native BarcodeDetector where it exists (Chrome and
+   Edge) and jsQR over canvas frames everywhere else. Safari and Firefox have
+   never shipped BarcodeDetector, and iPhone Safari is a large share of gym
+   members — so the camera has to work without it, not fall back to typing.
+
+   The manual code field stays visible regardless, because cameras get
+   declined, and a member at the door needs a way in either way.
    ========================================================================= */
 
 interface CheckinResponse {
@@ -39,6 +41,8 @@ export function Scanner() {
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
+  const [cameraReason, setCameraReason] = useState<string | null>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
   const submitted = useRef(false);
 
   async function submit(token: string) {
@@ -73,52 +77,107 @@ export function Scanner() {
     }
   }
 
-  /* Camera + detection loop. Torn down on unmount so the indicator light
-     does not stay on after the member navigates away. */
+  /*
+    Camera + decode loop.
+
+    Two decoders, because BarcodeDetector — the fast native one — exists only
+    in Chrome and Edge. Safari and Firefox have never shipped it, and iPhone
+    Safari is a large share of gym members. The first version bailed out
+    entirely when it was missing, so the camera never even turned on for those
+    users; jsQR now decodes canvas frames wherever the native API is absent.
+
+    getUserMedia additionally requires a SECURE CONTEXT. Over plain http on a
+    LAN address the browser refuses without explaining why, so that case is
+    detected up front and said out loud rather than looking like a dead camera.
+  */
   useEffect(() => {
     let stream: MediaStream | null = null;
     let raf = 0;
     let alive = true;
 
+    /* Every branch that sets state lives inside start(), so the effect body
+       itself never calls setState synchronously — that would queue an extra
+       render before the first paint. */
     async function start() {
-      const Detector = (
-        window as unknown as { BarcodeDetector?: new (o: object) => BarcodeDetectorLike }
-      ).BarcodeDetector;
-      if (!Detector || !navigator.mediaDevices?.getUserMedia) return;
+      if (!window.isSecureContext) {
+        setCameraReason(
+          "Cameras only work over https. Open this on an https:// address (or localhost) — or type the code below.",
+        );
+        return;
+      }
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraReason("This browser cannot open the camera. Type the code below.");
+        return;
+      }
 
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: { facingMode: { ideal: "environment" } },
         });
-        if (!alive) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        if (video.current) {
-          video.current.srcObject = stream;
-          await video.current.play();
-          setCameraOn(true);
+      } catch (e) {
+        const name = (e as DOMException)?.name;
+        setCameraReason(
+          name === "NotAllowedError"
+            ? "Camera permission was declined. Allow it in your browser settings, or type the code below."
+            : name === "NotFoundError"
+              ? "No camera found on this device. Type the code below."
+              : "Could not open the camera. Type the code below.",
+        );
+        return;
+      }
+
+      if (!alive) { stream.getTracks().forEach((t) => t.stop()); return; }
+
+      const el = video.current;
+      if (!el) return;
+      el.srcObject = stream;
+      try { await el.play(); } catch { /* autoplay race — the loop retries */ }
+      setCameraOn(true);
+      setCameraReason(null);
+
+      const Detector = (
+        window as unknown as { BarcodeDetector?: new (o: object) => BarcodeDetectorLike }
+      ).BarcodeDetector;
+      const native = Detector ? new Detector({ formats: ["qr_code"] }) : null;
+
+      const tick = async () => {
+        if (!alive || submitted.current) return;
+        const v = video.current;
+
+        if (v && v.readyState >= 2 && v.videoWidth > 0) {
+          let found: string | null = null;
+
+          if (native) {
+            try {
+              const codes = await native.detect(v);
+              found = codes[0]?.rawValue ?? null;
+            } catch { /* a frame that will not decode is normal */ }
+          } else {
+            const c = canvas.current;
+            const ctx = c?.getContext("2d", { willReadFrequently: true });
+            if (c && ctx) {
+              /* Downscale to ~320px wide: jsQR is pure JS and cost scales with
+                 pixels, and a QR filling a third of the frame decodes fine at
+                 that size. Full resolution drops the loop to a few fps. */
+              const scale = Math.min(1, 320 / v.videoWidth);
+              c.width = Math.round(v.videoWidth * scale);
+              c.height = Math.round(v.videoHeight * scale);
+              ctx.drawImage(v, 0, 0, c.width, c.height);
+              const img = ctx.getImageData(0, 0, c.width, c.height);
+              const { default: jsQR } = await import("jsqr");
+              found = jsQR(img.data, img.width, img.height, {
+                inversionAttempts: "dontInvert",
+              })?.data ?? null;
+            }
+          }
+
+          if (found) { void submit(found); return; }
         }
 
-        const detector = new Detector({ formats: ["qr_code"] });
-        const tick = async () => {
-          if (!alive || !video.current || submitted.current) return;
-          try {
-            const codes = await detector.detect(video.current);
-            if (codes[0]?.rawValue) {
-              void submit(codes[0].rawValue);
-              return;
-            }
-          } catch {
-            /* a frame that fails to decode is normal; keep looping */
-          }
-          raf = requestAnimationFrame(() => void tick());
-        };
         raf = requestAnimationFrame(() => void tick());
-      } catch {
-        // Permission denied or no camera — the manual field still works.
-        setCameraOn(false);
-      }
+      };
+
+      raf = requestAnimationFrame(() => void tick());
     }
 
     void start();
@@ -146,9 +205,11 @@ export function Scanner() {
           className="h-full w-full object-cover"
           style={{ display: cameraOn ? "block" : "none" }}
         />
+        <canvas ref={canvas} className="hidden" aria-hidden />
         {!cameraOn && (
-          <span className="text-[11px]" style={{ color: "var(--app-ink-35)" }}>
-            camera unavailable
+          <span className="max-w-[220px] px-4 text-center text-[11.5px] leading-snug"
+                style={{ color: "var(--app-ink-45)" }}>
+            {cameraReason ?? "Starting camera…"}
           </span>
         )}
         {[0, 1, 2, 3].map((i) => (
@@ -173,7 +234,11 @@ export function Scanner() {
       </div>
 
       <p className="mt-7 text-center text-[14px]" style={{ color: "rgb(249 244 237 / 0.65)" }}>
-        {busy ? "Checking you in…" : "Point at the code on the reception counter"}
+        {busy
+          ? "Checking you in…"
+          : cameraOn
+            ? "Point at the code on the reception counter"
+            : "Use the code entry below"}
       </p>
 
       {error && (

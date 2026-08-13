@@ -6,6 +6,11 @@
    test in the project behind an optional dependency. This runs anywhere Node
    runs, including CI, in about a second.
 
+   Each PGlite instance is a whole Postgres compiled to WASM and holds its
+   heap for the life of the worker, so several test files booting one each in
+   parallel exhausts V8's memory. `npm test` therefore passes
+   --no-file-parallelism; the suite runs in under a minute serially.
+
    What this does NOT cover: the custom access token hook itself (it runs
    inside GoTrue, not Postgres) and Supabase's real `auth` schema. Those need
    the smoke test against a Supabase branch — see tests/README.md.
@@ -70,6 +75,13 @@ const GRANTS = `
   grant select, insert, update, delete
     on all tables in schema public to authenticated, anon, service_role;
   grant usage, select on all sequences in schema public to authenticated, service_role;
+
+  /* Real Supabase grants these too — verified against the live project with
+     has_schema_privilege('authenticated','auth','usage'). Without them a
+     SECURITY INVOKER function that calls auth.uid() fails here and works in
+     production, which is the worst way for a stub to be wrong. */
+  grant usage on schema auth to authenticated, anon, service_role;
+  grant execute on function auth.uid() to authenticated, anon, service_role;
 `;
 
 export interface TestDb {

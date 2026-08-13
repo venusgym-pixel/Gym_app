@@ -17,6 +17,8 @@ import { env, serviceRoleKey } from "./env";
 
    Legitimate uses, and there are only these:
      · gym onboarding, before the first gym_users row exists to grant anything
+     · staff invitation, which creates an auth.users row — a schema no policy
+       can reach, since RLS governs the public schema and not Supabase Auth
      · the pg_cron worker draining notification_outbox across all tenants
      · webhook handlers, which arrive with no user session at all
      · DPDP erasure, which must reach rows the requester can no longer read
@@ -41,6 +43,7 @@ function adminClient(): SupabaseClient {
  *  see the reason without reading the surrounding code. */
 export type BypassReason =
   | "gym-onboarding"
+  | "staff-invite"
   | "cron-worker"
   | "webhook"
   | "dpdp-erasure";

@@ -12,9 +12,10 @@ import type { MembershipStatus } from "@/lib/db/database.types";
    The daily hub. Ordered by what the member actually opens the app for:
    check in, see how long is left, see their streak.
 
-   Workout, diet and progress cards from the design are absent because those
-   tables do not exist yet (Phase 2/3). Rather than render dead placeholders,
-   the screen shows what is real and says plainly what is coming.
+   Every tile goes somewhere real. Diet is the one card from the design still
+   missing — those tables are Phase 3 — and it is absent rather than greyed
+   out, because a placeholder that never becomes a feature trains people not
+   to tap anything.
    ========================================================================= */
 
 export const dynamic = "force-dynamic";
@@ -60,25 +61,49 @@ export default async function MemberHome() {
     );
   }
 
-  const [{ data: streakRow }, { data: visitsRow }, { data: recent }, { data: listRows }] =
-    await Promise.all([
-      db.rpc("attendance_streak", { p_gym_id: actor.gymId, p_member_id: m.id }),
-      db.rpc("visits_this_month", { p_gym_id: actor.gymId, p_member_id: m.id }),
-      db
-        .from("attendance")
-        .select("checked_in_at")
-        .eq("gym_id", actor.gymId)
-        .eq("member_id", m.id)
-        .order("checked_in_at", { ascending: false })
-        .limit(1),
-      /* RLS narrows this to the caller's own row, so it is the member's own
-         record with days_left already computed by the database. */
-      db.rpc("members_list", {
-        p_gym_id: actor.gymId,
-        p_status: null,
-        p_search: null,
-      }),
-    ]);
+  const [
+    { data: streakRow },
+    { data: visitsRow },
+    { data: recent },
+    { data: listRows },
+    { data: workoutRow },
+    { data: weighIn },
+  ] = await Promise.all([
+    db.rpc("attendance_streak", { p_gym_id: actor.gymId, p_member_id: m.id }),
+    db.rpc("visits_this_month", { p_gym_id: actor.gymId, p_member_id: m.id }),
+    db
+      .from("attendance")
+      .select("checked_in_at")
+      .eq("gym_id", actor.gymId)
+      .eq("member_id", m.id)
+      .order("checked_in_at", { ascending: false })
+      .limit(1),
+    /* RLS narrows this to the caller's own row, so it is the member's own
+       record with days_left already computed by the database. */
+    db.rpc("members_list", {
+      p_gym_id: actor.gymId,
+      p_status: null,
+      p_search: null,
+    }),
+    db.rpc("todays_workout", { p_gym_id: actor.gymId, p_member_id: m.id }),
+    db
+      .from("measurements")
+      .select("weight_kg")
+      .eq("gym_id", actor.gymId)
+      .eq("member_id", m.id)
+      .not("weight_kg", "is", null)
+      .order("taken_on", { ascending: false })
+      .limit(1),
+  ]);
+
+  const workout = workoutRow as unknown as {
+    assigned: boolean;
+    plan_name?: string;
+    day_name?: string;
+    exercises?: unknown[];
+  } | null;
+
+  const latestWeight = (weighIn ?? [])[0]?.weight_kg as number | undefined ?? null;
 
   const self = ((listRows ?? []) as { id: string; days_left: number | null }[]).find(
     (r) => r.id === m.id,
@@ -227,15 +252,33 @@ export default async function MemberHome() {
           </p>
         </Link>
 
+        {/* today's workout */}
+        <Link
+          href="/m/workout"
+          className="rounded-lg px-5 py-4"
+          style={{ background: "var(--color-app-surface)" }}
+        >
+          <p className="text-[11px] tracking-[0.08em] uppercase" style={{ color: "var(--app-ink-55)" }}>
+            {workout?.assigned ? workout.plan_name : "Training"}
+          </p>
+          <p className="mt-1.5 text-[22px]">
+            {workout?.assigned ? workout.day_name : "No plan yet"}
+          </p>
+          <p className="mt-1 text-[12.5px]" style={{ color: "var(--app-ink-55)" }}>
+            {workout?.assigned
+              ? `${workout.exercises?.length ?? 0} exercises · tap to start`
+              : "Ask your trainer to assign one."}
+          </p>
+        </Link>
+
         <div className="grid grid-cols-2 gap-2.5">
           <Tile href="/m/membership" label="Membership"
                 value={term?.plans ? formatINR(term.plans.price_paise) : "—"} />
           <Tile href="/m/attendance" label="Visits this month" value={String(visits)} />
+          <Tile href="/m/progress" label="Progress"
+                value={latestWeight === null ? "Log" : `${latestWeight}kg`} />
+          <Tile href="/m/more" label="Profile & help" value="More" />
         </div>
-
-        <p className="mt-1 text-center text-[11.5px]" style={{ color: "var(--app-ink-40)" }}>
-          Workouts, diet and progress arrive in the next release.
-        </p>
       </Screen>
 
       <MemberTabBar current="/m" />

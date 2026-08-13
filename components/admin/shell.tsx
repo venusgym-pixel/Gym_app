@@ -10,8 +10,10 @@ import type { GymRole } from "@/lib/db/database.types";
    actually stops them reading it. Hiding a link the database would refuse
    anyway just avoids offering people dead ends.
 
-   Sections not yet built render as muted text rather than links. A nav full
-   of 404s is worse than a nav that admits what is coming.
+   Every item here is built and routable. The `ready` flag stays because the
+   next unfinished section will want it: unbuilt items render as muted text
+   rather than links, since a nav full of 404s is worse than one that admits
+   what is coming.
    ========================================================================= */
 
 interface NavItem {
@@ -26,26 +28,29 @@ interface NavItem {
 const ADMIN_NAV: NavItem[] = [
   { label: "Dashboard",   href: "/admin",            module: "dashboard",   ready: true },
   { label: "Members",     href: "/admin/members",    module: "members",     ready: true },
+  { label: "Leads",       href: "/admin/leads",      module: "leads",       ready: true },
   { label: "Plans",       href: "/admin/plans",      module: "memberships", ready: true },
   { label: "Payments",    href: "/admin/payments",   module: "payments",    ready: true },
   { label: "Attendance",  href: "/admin/attendance", module: "attendance",  ready: true },
   { label: "Kiosk",       href: "/admin/kiosk",      module: "attendance",  ready: true },
   { label: "Coaching",    href: "/trainer",          module: "workouts",    ready: true },
-  { label: "Staff",       href: "/admin/staff",      module: "staff" },
-  { label: "Leads",       href: "/admin/leads",      module: "leads" },
-  { label: "Messaging",   href: "/admin/messaging",  module: "messaging" },
-  { label: "Reports",     href: "/admin/reports",    module: "reports" },
-  { label: "Settings",    href: "/admin/settings",   module: "settings" },
+  { label: "Messaging",   href: "/admin/messaging",  module: "messaging",   ready: true },
+  { label: "Reports",     href: "/admin/reports",    module: "reports",     ready: true },
+  { label: "Staff",       href: "/admin/staff",      module: "staff",       ready: true },
+  { label: "Settings",    href: "/admin/settings",   module: "settings",    ready: true },
 ];
 
 /* Trainers get their own nav. Handing them the admin one meant every link
-   pointed at a surface the proxy would immediately bounce them out of. */
+   pointed at a surface the proxy would immediately bounce them out of.
+
+   Scheduling and trainer↔member chat are absent rather than greyed out: both
+   need tables that do not exist (pt_sessions, message threads), and a nav
+   item that has been "soon" for two releases teaches people to ignore the
+   nav. They come back when the schema does. */
 const TRAINER_NAV: NavItem[] = [
   { label: "Today",      href: "/trainer",           module: "dashboard", ready: true },
-  { label: "Exercises",  href: "/trainer/exercises", module: "exercises" },
-  { label: "Plans",      href: "/trainer/plans",     module: "workouts" },
-  { label: "Schedule",   href: "/trainer/schedule",  module: "workouts" },
-  { label: "Messages",   href: "/trainer/messages",  module: "messaging" },
+  { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
+  { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
 ];
 
 export function AdminShell({

@@ -305,6 +305,73 @@ describe("who can see a member's training", () => {
   });
 });
 
+/* The mirror of the block above, and the reason it exists: every leak test
+   passes against a policy that returns nothing to anybody. /trainer/plans
+   shipped reporting "0 Plans" over a seeded 3-day split because the trainer's
+   scope is 'assigned' and the generated policies require 'all'. These assert
+   the trainer can do their job, not merely that nobody else can. */
+describe("a trainer can actually run the coaching loop", () => {
+  const trainer = () =>
+    ({ userId: gym.staff.trainer, gymId: gym.gymId, role: "trainer" as const });
+
+  it("reads the plan library, days and exercises", async () => {
+    const t = trainer();
+    expect(await db.as(t, `select id from workout_plans`)).toHaveLength(1);
+    expect(await db.as(t, `select id from workout_days`)).toHaveLength(3);
+    expect(
+      (await db.as(t, `select id from workout_exercises`)).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("assigns a plan to their own client, and can end it again", async () => {
+    const t = trainer();
+
+    await db.as(
+      t,
+      `insert into workout_assignments (gym_id, member_id, plan_id, assigned_by)
+       values ($1, $2, $3, $4)`,
+      [gym.gymId, gym.memberId, planId, gym.staff.trainer],
+    );
+    expect(await db.as(t, `select id from workout_assignments`)).toHaveLength(1);
+
+    /* assignPlan() closes the live assignment before inserting the next one.
+       Without an update policy the "one live plan" constraint fires instead
+       of the swap succeeding. */
+    await db.as(
+      t,
+      `update workout_assignments set ends_on = current_date
+        where member_id = $1 and ends_on is null`,
+      [gym.memberId],
+    );
+    const [row] = await db.as<{ ends_on: string | null }>(
+      t, `select ends_on from workout_assignments`,
+    );
+    expect(row.ends_on).not.toBeNull();
+  });
+
+  it("cannot assign a plan to someone who is not their client", async () => {
+    await db.sql(`delete from trainer_clients where gym_id = $1`, [gym.gymId]);
+
+    await expect(
+      db.as(
+        trainer(),
+        `insert into workout_assignments (gym_id, member_id, plan_id, assigned_by)
+         values ($1, $2, $3, $4)`,
+        [gym.gymId, gym.memberId, planId, gym.staff.trainer],
+      ),
+    ).rejects.toThrow(/row-level security/i);
+  });
+
+  it("cannot touch another gym's plan library", async () => {
+    const other = await seedGym(db, "rival2");
+    await db.sql(`select seed_gym_exercises($1)`, [other.gymId]);
+    await db.sql(`select seed_starter_plan($1, $2)`, [other.gymId, other.staff.trainer]);
+
+    // Ours still reads exactly one plan — theirs, not two.
+    expect(await db.as(trainer(), `select id from workout_plans`)).toHaveLength(1);
+  });
+});
+
 describe("measurements", () => {
   it("a member records their own, and a second entry the same day corrects it", async () => {
     const actor = { userId: gym.memberUserId, gymId: gym.gymId, role: "member" as const };
