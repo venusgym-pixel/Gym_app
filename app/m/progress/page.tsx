@@ -49,7 +49,7 @@ export default async function ProgressPage() {
   if (!m) {
     return (
       <>
-        <Screen center><h1 className="text-[24px]">No member record</h1></Screen>
+        <Screen center tabBar><h1 className="text-[24px]">No member record</h1></Screen>
         <MemberTabBar current="/m/progress" />
       </>
     );
@@ -106,7 +106,7 @@ export default async function ProgressPage() {
 
   return (
     <>
-      <Screen className="pb-32">
+      <Screen tabBar>
         <h1 className="text-[28px]">Progress</h1>
 
         <div className="mt-5 grid grid-cols-3 gap-2.5">

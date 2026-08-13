@@ -88,7 +88,7 @@ export default async function MembershipPage() {
 
   return (
     <>
-      <Screen className="pb-32">
+      <Screen tabBar>
         <h1 className="text-[28px]">Membership</h1>
 
         {current ? (

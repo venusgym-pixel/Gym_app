@@ -74,6 +74,28 @@
   --color-app-avatar: #3d3529;
   --color-app-avatar-2: #3d472b;
 
+  /* ── Tab bar geometry ───────────────────────────────────────────────────
+     One source of truth, because two things must agree exactly: the bar's
+     own height, and how much bottom padding every scrolling screen needs to
+     clear it. When those were separate numbers the content scrolled under
+     the bar on any phone with a home indicator.
+
+     --tabbar-controls is the touchable strip. 4.5rem/72px keeps every tab
+     above the 48dp Android and 44pt iOS minimums with room for the label.
+
+     --tabbar-total adds the home indicator. env() resolves to 0px in a
+     normal browser tab and to ~34px in an installed iOS app, which is
+     exactly the difference that made the bar look squashed once installed.
+
+     The fallback in env(..., 0px) matters: without it the whole calc()
+     is invalid on browsers that do not know the keyword, and the bar
+     collapses entirely rather than degrading. */
+  --tabbar-controls: 4.5rem;
+  --tabbar-total: calc(var(--tabbar-controls) + env(safe-area-inset-bottom, 0px));
+  /* Clearance for scrolling content: the bar, plus the 28px the check-in
+     FAB rises above it, plus breathing room. */
+  --tabbar-clearance: calc(var(--tabbar-total) + 3.25rem);
+
   /* ── Membership status. One palette, six variants, used identically in
        admin tables, member home and the check-in kiosk (ui-screens-spec §0.3
        calls this out as the spine of the product). ─────────────────────── */

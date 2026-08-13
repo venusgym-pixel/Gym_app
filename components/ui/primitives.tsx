@@ -17,23 +17,44 @@ export function Screen({
   children,
   className,
   center = false,
+  tabBar = false,
 }: {
   children: ReactNode;
   className?: string;
   /** Vertically centre the content — splash and confirmation screens. */
   center?: boolean;
+  /**
+   * This screen renders a MemberTabBar, so reserve room for it.
+   *
+   * Pages used to do this themselves with `pb-32`, which was wrong twice
+   * over. It is a guess at a number that changes per device — 128px against
+   * a bar that is 72px plus a 34px home indicator plus the FAB's 28px
+   * overhang — and, being a second padding-bottom utility, whether it beat
+   * the default below came down to the order Tailwind happened to emit them
+   * in, not the order they were written. Content disappeared under the bar.
+   */
+  tabBar?: boolean;
 }) {
   return (
     <div className="surface-app min-h-dvh w-full">
       <div
         className={cx(
           "mx-auto flex min-h-dvh w-full max-w-[430px] flex-col px-6",
-          // Clears the notch and the home indicator on a real device.
-          "pt-[max(3.5rem,env(safe-area-inset-top))]",
-          "pb-[max(2.5rem,env(safe-area-inset-bottom))]",
+          /* Clears the notch. Adding to the inset rather than taking the
+             larger of the two: on an iPhone 14 Pro the inset is 59px, so
+             max(56px, 59px) left the first line flush against the Dynamic
+             Island with no breathing room at all. */
+          "pt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+1rem))]",
+          /* Only when there is no tab bar, so a page can still add its own
+             bottom room with a pb-* class. With a tab bar the inline style
+             below takes over and deliberately cannot be overridden. */
+          !tabBar && "pb-[max(2.5rem,calc(env(safe-area-inset-bottom,0px)+1rem))]",
           center && "items-center justify-center text-center",
           className,
         )}
+        /* Inline, so the tab-bar clearance always wins over a stray pb-* in
+           className rather than depending on the order Tailwind emitted them. */
+        style={tabBar ? { paddingBottom: "var(--tabbar-clearance)" } : undefined}
       >
         {children}
       </div>

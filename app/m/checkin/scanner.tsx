@@ -191,7 +191,7 @@ export function Scanner() {
   if (result) return <Outcome result={result} />;
 
   return (
-    <Screen className="pb-32">
+    <Screen tabBar>
       <h1 className="text-[24px]">Check in</h1>
 
       <div
@@ -304,7 +304,7 @@ function Outcome({ result }: { result: CheckinResponse }) {
 
   return (
     <>
-      <Screen center className="pb-32">
+      <Screen center tabBar>
         <div
           className="grid h-30 w-30 place-items-center rounded-pill"
           style={{

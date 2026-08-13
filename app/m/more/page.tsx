@@ -42,7 +42,7 @@ export default async function MorePage() {
 
   return (
     <>
-      <Screen className="pb-32">
+      <Screen tabBar>
         <h1 className="text-[28px]">Account</h1>
 
         {m && (

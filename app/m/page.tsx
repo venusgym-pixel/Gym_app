@@ -50,7 +50,7 @@ export default async function MemberHome() {
   if (!m) {
     return (
       <>
-        <Screen center>
+        <Screen center tabBar>
           <h1 className="text-[26px]">No membership found</h1>
           <p className="mt-2 text-[13.5px]" style={{ color: "var(--app-ink-55)" }}>
             Your account isn&rsquo;t linked to a member record yet. Reception can
@@ -144,7 +144,7 @@ export default async function MemberHome() {
 
   return (
     <>
-      <Screen className="gap-3.5 pb-32">
+      <Screen tabBar className="gap-3.5">
         <header className="flex items-center gap-3">
           <div
             className="grid h-11 w-11 place-items-center rounded-pill text-[15px] font-semibold"
