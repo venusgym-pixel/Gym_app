@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { can, type Module } from "@/lib/auth/permissions";
+import { can, mayOpen, type Module } from "@/lib/auth/permissions";
 import type { GymRole } from "@/lib/db/database.types";
 
 /* ============================================================================
@@ -18,20 +18,34 @@ interface NavItem {
   label: string;
   href: string;
   module: Module;
+  /** Built and routable. Anything without this renders as muted text — a nav
+   *  full of 404s is worse than one that admits what is still coming. */
   ready?: boolean;
 }
 
-const NAV: NavItem[] = [
-  { label: "Dashboard",   href: "/admin",           module: "dashboard",   ready: true },
-  { label: "Members",     href: "/admin/members",   module: "members",     ready: true },
-  { label: "Memberships", href: "/admin/plans",     module: "memberships" },
-  { label: "Payments",    href: "/admin/payments",  module: "payments" },
-  { label: "Attendance",  href: "/admin/attendance", module: "attendance" },
-  { label: "Trainers",    href: "/admin/staff",     module: "staff" },
-  { label: "Leads",       href: "/admin/leads",     module: "leads" },
-  { label: "Messaging",   href: "/admin/messaging", module: "messaging" },
-  { label: "Reports",     href: "/admin/reports",   module: "reports" },
-  { label: "Settings",    href: "/admin/settings",  module: "settings" },
+const ADMIN_NAV: NavItem[] = [
+  { label: "Dashboard",   href: "/admin",            module: "dashboard",   ready: true },
+  { label: "Members",     href: "/admin/members",    module: "members",     ready: true },
+  { label: "Plans",       href: "/admin/plans",      module: "memberships", ready: true },
+  { label: "Payments",    href: "/admin/payments",   module: "payments",    ready: true },
+  { label: "Attendance",  href: "/admin/attendance", module: "attendance",  ready: true },
+  { label: "Kiosk",       href: "/admin/kiosk",      module: "attendance",  ready: true },
+  { label: "Coaching",    href: "/trainer",          module: "workouts",    ready: true },
+  { label: "Staff",       href: "/admin/staff",      module: "staff" },
+  { label: "Leads",       href: "/admin/leads",      module: "leads" },
+  { label: "Messaging",   href: "/admin/messaging",  module: "messaging" },
+  { label: "Reports",     href: "/admin/reports",    module: "reports" },
+  { label: "Settings",    href: "/admin/settings",   module: "settings" },
+];
+
+/* Trainers get their own nav. Handing them the admin one meant every link
+   pointed at a surface the proxy would immediately bounce them out of. */
+const TRAINER_NAV: NavItem[] = [
+  { label: "Today",      href: "/trainer",           module: "dashboard", ready: true },
+  { label: "Exercises",  href: "/trainer/exercises", module: "exercises" },
+  { label: "Plans",      href: "/trainer/plans",     module: "workouts" },
+  { label: "Schedule",   href: "/trainer/schedule",  module: "workouts" },
+  { label: "Messages",   href: "/trainer/messages",  module: "messaging" },
 ];
 
 export function AdminShell({
@@ -49,7 +63,12 @@ export function AdminShell({
   email?: string | null;
   children: React.ReactNode;
 }) {
-  const visible = NAV.filter((i) => can(role, i.module, "view"));
+  /* Which nav depends on where you are, not only who you are: an owner
+     browsing /trainer should see the coaching nav while they are there. */
+  const onTrainer = current.startsWith("/trainer");
+  const visible = (onTrainer ? TRAINER_NAV : ADMIN_NAV).filter((i) =>
+    can(role, i.module, "view"),
+  );
 
   return (
     <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
@@ -91,6 +110,16 @@ export function AdminShell({
                 </span>
               </span>
             ),
+          )}
+
+          {/* An owner supervising coaching needs a way back out. */}
+          {onTrainer && mayOpen(role, "admin") && (
+            <Link
+              href="/admin"
+              className="rounded-md px-3 py-2 text-[13.5px] whitespace-nowrap text-neutral-700 hover:bg-neutral-200 md:mt-3 md:border-t md:border-neutral-300 md:pt-3"
+            >
+              ← Back to admin
+            </Link>
           )}
         </nav>
 
