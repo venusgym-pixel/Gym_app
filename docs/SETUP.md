@@ -196,17 +196,32 @@ npm run cf:deploy           # build + ship
 ```
 
 Then set the secrets. These are **not** in `wrangler.jsonc` — that file is
-committed:
+committed. `.dev.vars` already holds exactly the four the worker needs, in
+KEY=VALUE form, so upload the lot in one command:
 
 ```bash
-npx wrangler secret put NEXT_PUBLIC_SUPABASE_URL
-npx wrangler secret put NEXT_PUBLIC_SUPABASE_ANON_KEY
-npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
-npx wrangler secret put CRON_SECRET
+npx wrangler secret bulk .dev.vars
 ```
 
-Locally, the same four live in `.dev.vars` (gitignored) so `cf:preview`
-works without touching production.
+**Do not delete `.env.local` afterwards.** The two files look redundant and
+are not.
+
+Cloudflare secrets are read at RUNTIME — by the middleware, the job endpoints
+and the staff invite. But `NEXT_PUBLIC_*` values are also inlined into the
+browser bundle at BUILD time, and `npm run cf:deploy` builds on your machine,
+where the only source of them is `.env.local`. Build without it and you ship a
+bundle pointing at `undefined` — which fails in the worst way: the server
+renders every page correctly and every browser request dies.
+
+So the same four values live in three places, each for a different reason:
+
+| Where | Read when | Why |
+|---|---|---|
+| `.env.local` | `npm run build`, `cf:deploy` | inlines NEXT_PUBLIC_* into the client bundle |
+| `.dev.vars` | `npm run cf:preview` | the local worker's runtime |
+| Cloudflare secrets | the deployed worker | production runtime |
+
+All three are gitignored; `wrangler.jsonc` is committed and holds no values.
 
 **After the first deploy**, two things point at the old host and must move:
 
