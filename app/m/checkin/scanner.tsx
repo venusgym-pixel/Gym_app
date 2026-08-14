@@ -134,10 +134,13 @@ export function Scanner() {
         const name = (e as DOMException)?.name ?? "Error";
 
         /* An installed app has no address bar, so "allow it in your browser
-           settings" is advice the member cannot act on — the permission lives
-           against the installed app in the OS instead. Once Chrome has a
-           denial recorded it rejects instantly and never prompts again, so
-           the only way out is that settings screen. */
+           settings" is advice the member cannot act on. Nor is it an Android
+           app permission: a PWA installed by Chrome is a WebAPK, and the
+           camera grant lives in CHROME's per-site settings — which is why
+           looking under Settings → Apps → Fitwell → Permissions turns up
+           nothing at all. Once Chrome has a denial recorded it rejects
+           instantly and never prompts again, so that screen is the only way
+           back. */
         const standalone =
           window.matchMedia("(display-mode: standalone)").matches ||
           (window.navigator as unknown as { standalone?: boolean }).standalone === true;
@@ -145,7 +148,7 @@ export function Scanner() {
         const message =
           name === "NotAllowedError"
             ? standalone
-              ? "Camera permission is off. Open your phone's Settings → Apps → Fitwell → Permissions → Camera, allow it, then tap Try again."
+              ? "Camera permission is off. In the Chrome app: ⋮ → Settings → Site settings → Camera → allow this site, then come back and tap Try again."
               : "Camera permission was declined. Tap the icon at the left of the address bar → Permissions → Camera → Allow, then tap Try again."
             : name === "NotFoundError"
               ? "No camera found on this device. Type the code below."
