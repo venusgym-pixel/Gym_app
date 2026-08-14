@@ -132,9 +132,21 @@ export function Scanner() {
         ]);
       } catch (e) {
         const name = (e as DOMException)?.name ?? "Error";
+
+        /* An installed app has no address bar, so "allow it in your browser
+           settings" is advice the member cannot act on — the permission lives
+           against the installed app in the OS instead. Once Chrome has a
+           denial recorded it rejects instantly and never prompts again, so
+           the only way out is that settings screen. */
+        const standalone =
+          window.matchMedia("(display-mode: standalone)").matches ||
+          (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+
         const message =
           name === "NotAllowedError"
-            ? "Camera permission was declined. Allow it in your browser settings, or type the code below."
+            ? standalone
+              ? "Camera permission is off. Open your phone's Settings → Apps → Fitwell → Permissions → Camera, allow it, then tap Try again."
+              : "Camera permission was declined. Tap the icon at the left of the address bar → Permissions → Camera → Allow, then tap Try again."
             : name === "NotFoundError"
               ? "No camera found on this device. Type the code below."
               : name === "NotReadableError"
