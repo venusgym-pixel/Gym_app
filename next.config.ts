@@ -60,22 +60,32 @@ const nextConfig: NextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
     ];
 
-    /* Camera is denied everywhere and granted back on the check-in route
-       alone. Omitting the key entirely would not do that: the default
-       allowlist for camera is already 'self', so silence means allowed. */
-    const permissions = (camera: string) =>
-      `camera=${camera}, microphone=(), geolocation=(), payment=(self)`;
+    /*
+      camera=(self) on EVERY route, not just the scanner.
+
+      The previous version denied camera everywhere and granted it back on
+      /m/checkin alone, which looked like tidy least-privilege and silently
+      broke the feature. Permissions-Policy binds to a DOCUMENT, not a URL,
+      and the member app is a single-page app: you open it at /m and tap
+      "Scan to check in", which is a client-side navigation. No new document
+      is fetched, so the policy from /m — camera=() — was still in force and
+      the browser rejected getUserMedia outright. No prompt, no entry in
+      Chrome's site settings, just NotAllowedError.
+
+      It only appeared to work when the route was loaded directly, which is
+      the one way nobody actually reaches it.
+
+      Same origin, one app, and the only camera use is the scanner, so
+      granting it document-wide costs nothing real. microphone, geolocation
+      and payment stay denied — nothing here uses them.
+    */
+    const permissions =
+      "camera=(self), microphone=(), geolocation=(), payment=(self)";
 
     return [
-      { source: "/:path*", headers: base },
       {
-        source: "/m/checkin/:path*",
-        headers: [{ key: "Permissions-Policy", value: permissions("(self)") }],
-      },
-      {
-        // Everything that is not the scanner.
-        source: "/((?!m/checkin).*)",
-        headers: [{ key: "Permissions-Policy", value: permissions("()") }],
+        source: "/:path*",
+        headers: [...base, { key: "Permissions-Policy", value: permissions }],
       },
     ];
   },
