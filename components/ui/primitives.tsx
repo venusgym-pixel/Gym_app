@@ -39,7 +39,12 @@ export function Screen({
     <div className="surface-app min-h-dvh w-full">
       <div
         className={cx(
-          "mx-auto flex min-h-dvh w-full max-w-[29em] flex-col px-[1.6em]",
+          /* 1.25em, not 1.6em. The em conversion kept the ORIGINAL 24px
+             gutter proportional, which was right in principle but left the
+             member screens with visibly wider margins than the admin ones
+             beside them (~25px against ~20px) — on a 423px phone that is
+             12% of the width spent on empty edges. */
+          "mx-auto flex min-h-dvh w-full max-w-[29em] flex-col px-[1.25em]",
           /* Clears the notch. Adding to the inset rather than taking the
              larger of the two: on an iPhone 14 Pro the inset is 59px, so
              max(56px, 59px) left the first line flush against the Dynamic

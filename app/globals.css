@@ -202,6 +202,34 @@
   .surface-app {
     background: var(--color-app-bg);
     color: var(--color-app-ink);
+
+    /* No pinch-zoom on the member surface — pinching a screen is the clearest
+       tell that something is a web page wearing an app's clothes.
+
+       Done with touch-action rather than maximum-scale=1 in the viewport tag,
+       deliberately. That tag disables zoom for EVERYONE including people who
+       need it, and Android's "Force enable zoom" overrides pages that try —
+       at which point Chrome stops honouring the rest of the viewport tag,
+       which is one route to the 980px desktop fallback that had this app
+       rendering as a strip down the middle of the screen.
+
+       touch-action only suppresses the gesture. Browser zoom controls, OS
+       magnification and the accessibility override all still work, and the
+       viewport tag stays untouched. */
+    touch-action: pan-x pan-y;
+
+    /* Stops the whole page rubber-banding past its ends, which is the other
+       thing that reads as "browser" rather than "app". */
+    overscroll-behavior: none;
+  }
+
+  /* Double-tap-to-zoom also delays every tap by ~300ms while the browser
+     waits to see if a second one is coming. Killing it on controls makes the
+     app feel quicker as well as more native. */
+  .surface-app a,
+  .surface-app button,
+  .surface-app [role="button"] {
+    touch-action: manipulation;
   }
 
   /* Headings carry the tightened tracking the design uses throughout. */
