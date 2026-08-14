@@ -42,6 +42,10 @@ export function Scanner() {
   const [manual, setManual] = useState("");
   const [cameraOn, setCameraOn] = useState(false);
   const [cameraReason, setCameraReason] = useState<string | null>(null);
+  /* Bumping this re-runs the camera effect. A failed camera used to be a
+     dead end — the only recovery was reloading the page, which on an
+     installed app means closing and reopening it. */
+  const [attempt, setAttempt] = useState(0);
   const canvas = useRef<HTMLCanvasElement>(null);
   const submitted = useRef(false);
 
@@ -111,25 +115,50 @@ export function Scanner() {
       }
 
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-        });
+        /* getUserMedia can hang forever rather than rejecting — another app
+           holding the camera, a permission prompt that never appears, some
+           Android WebViews. Without this race the screen sits on "Starting
+           camera…" indefinitely with no error and no way out, which is
+           indistinguishable from the app being broken. Ten seconds is long
+           enough for a slow phone to wake its camera and short enough that
+           nobody stands at the door wondering. */
+        stream = await Promise.race([
+          navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: "environment" } },
+          }),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new DOMException("timeout", "TimeoutError")), 10_000),
+          ),
+        ]);
       } catch (e) {
-        const name = (e as DOMException)?.name;
-        setCameraReason(
+        const name = (e as DOMException)?.name ?? "Error";
+        const message =
           name === "NotAllowedError"
             ? "Camera permission was declined. Allow it in your browser settings, or type the code below."
             : name === "NotFoundError"
               ? "No camera found on this device. Type the code below."
-              : "Could not open the camera. Type the code below.",
-        );
+              : name === "NotReadableError"
+                ? "Another app is using the camera. Close it and tap Try again."
+                : name === "TimeoutError"
+                  ? "The camera did not start. Tap Try again, or type the code below."
+                  : "Could not open the camera. Type the code below.";
+        /* The error NAME is appended deliberately. Every friendly message
+           above reads the same in a screenshot, and "camera not working" with
+           no detail cost a long round of guessing once already. */
+        setCameraReason(`${message} (${name})`);
         return;
       }
 
       if (!alive) { stream.getTracks().forEach((t) => t.stop()); return; }
 
       const el = video.current;
-      if (!el) return;
+      if (!el) {
+        /* Previously returned silently, leaving "Starting camera…" on screen
+           forever with the stream still open behind it. */
+        stream.getTracks().forEach((t) => t.stop());
+        setCameraReason("The camera preview could not be attached. Tap Try again.");
+        return;
+      }
       el.srcObject = stream;
       try { await el.play(); } catch { /* autoplay race — the loop retries */ }
       setCameraOn(true);
@@ -186,7 +215,7 @@ export function Scanner() {
       cancelAnimationFrame(raf);
       stream?.getTracks().forEach((t) => t.stop());
     };
-  }, []);
+  }, [attempt]);
 
   if (result) return <Outcome result={result} />;
 
@@ -207,10 +236,28 @@ export function Scanner() {
         />
         <canvas ref={canvas} className="hidden" aria-hidden />
         {!cameraOn && (
-          <span className="max-w-[14.474em] px-4 text-center text-[0.757em] leading-snug"
-                style={{ color: "var(--app-ink-45)" }}>
-            {cameraReason ?? "Starting camera…"}
-          </span>
+          <div className="flex max-w-[14.474em] flex-col items-center gap-3 px-4 text-center">
+            <span className="text-[0.757em] leading-snug"
+                  style={{ color: "var(--app-ink-45)" }}>
+              {cameraReason ?? "Starting camera…"}
+            </span>
+            {/* Only once something has actually gone wrong — a retry button
+                sitting there during the normal one-second startup would read
+                as "this is expected to fail". */}
+            {cameraReason && (
+              <button
+                type="button"
+                onClick={() => { setCameraReason(null); setAttempt((n) => n + 1); }}
+                className="rounded-pill px-4 py-2 text-[0.757em] font-bold"
+                style={{
+                  background: "var(--color-app-accent)",
+                  color: "var(--color-app-accent-ink)",
+                }}
+              >
+                Try again
+              </button>
+            )}
+          </div>
         )}
         {[0, 1, 2, 3].map((i) => (
           <span
