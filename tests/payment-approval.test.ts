@@ -184,3 +184,46 @@ describe("money taken at the desk is unaffected", () => {
     expect(res.invoice_id).toBeTruthy();
   });
 });
+
+describe("the same money cannot be counted twice", () => {
+  it("allows only one outstanding claim per member", async () => {
+    await claim();
+    /* The pay screen hides itself while a claim is waiting, but that is
+       presentation. Two taps on a slow connection, or a direct API call,
+       would otherwise leave reception two cards to approve for one payment. */
+    await expect(
+      db.as(
+        member(),
+        `select claim_payment($1, $2, $3, 'upi', 'proofs/again.jpg', 'UPI-REF-2')`,
+        [gym.gymId, gym.memberId, gym.planId],
+      ),
+    ).rejects.toThrow(/payments_one_open_claim|duplicate key/i);
+  });
+
+  it("refuses a UPI reference that has already been used", async () => {
+    const first = await claim();
+    await db.as(owner(), `select * from approve_payment($1, $2)`, [first, gym.planId]);
+
+    /* Reusing last month's reference is the cheapest possible fraud, and the
+       UTR is the one part of a screenshot that cannot be honestly repeated. */
+    await expect(
+      db.as(
+        member(),
+        `select claim_payment($1, $2, $3, 'upi', 'proofs/reuse.jpg', 'UPI-REF-1')`,
+        [gym.gymId, gym.memberId, gym.planId],
+      ),
+    ).rejects.toThrow(/payments_reference_once|duplicate key/i);
+  });
+
+  it("still allows a fresh claim after the first is settled", async () => {
+    const first = await claim();
+    await db.as(owner(), `select * from approve_payment($1, $2)`, [first, gym.planId]);
+
+    const [row] = await db.as<{ claim_payment: string }>(
+      member(),
+      `select claim_payment($1, $2, $3, 'upi', 'proofs/next.jpg', 'UPI-REF-NEW')`,
+      [gym.gymId, gym.memberId, gym.planId],
+    );
+    expect(row.claim_payment).toBeTruthy();
+  });
+});

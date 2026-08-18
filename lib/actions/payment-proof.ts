@@ -117,7 +117,20 @@ export async function submitPaymentProof(
     p_reference: reference || null,
   });
 
-  if (error) return { ok: false, error: "Could not record that. Ask reception." };
+  if (error) {
+    /* Two database constraints guard this, and both are things the member
+       can act on — so say which, rather than a generic failure. 23505 is a
+       unique violation. */
+    if (error.code === "23505") {
+      return {
+        ok: false,
+        error: error.message.includes("payments_reference_once")
+          ? "That UPI reference has already been used. Check you copied the right one from your payment."
+          : "You already have a payment waiting to be checked. Ask at the desk if it is taking too long.",
+      };
+    }
+    return { ok: false, error: "Could not record that. Ask reception." };
+  }
 
   revalidatePath("/m/membership");
   revalidatePath("/admin/payments");
