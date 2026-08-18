@@ -11,6 +11,8 @@
    charged another.
    ========================================================================= */
 
+import jsQR from "jsqr";
+import { encodeQr } from "../lib/qr-encode";
 import { describe, expect, it } from "vitest";
 import {
   fiscalYearOf, formatINR, formatINRCompact, formatINRExact, gstSplit,
@@ -158,5 +160,60 @@ describe("offline check-in freshness", () => {
 
   it("rejects a scan claiming to be from the future", () => {
     expect(offlineCheckinIsFresh(now + 60_000, now)).toBe(false);
+  });
+});
+
+/* ============================================================================
+   The QR codes must actually be readable.
+
+   The hand-written encoder this replaced produced grids that no decoder could
+   read — including for a five-character payload — and it shipped on the
+   kiosk for weeks. Nothing caught it because an invalid QR looks exactly like
+   a valid one, and every test asserted on the matrix rather than on whether a
+   camera could decode it.
+
+   So: encode, rasterise, and decode with jsQR — the same library the member
+   app's scanner uses. If this passes, a phone can read it.
+   ========================================================================= */
+
+describe("QR codes decode", () => {
+  /** Render a matrix to RGBA the way a camera would see it, then read it back. */
+  function roundTrip(text: string): string | null {
+    const qr = encodeQr(text);
+    const size = qr.length;
+    const quiet = 4;
+    const scale = 5;
+    const dim = (size + quiet * 2) * scale;
+
+    const data = new Uint8ClampedArray(dim * dim * 4).fill(255);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (!qr[y][x]) continue;
+        for (let dy = 0; dy < scale; dy++) {
+          for (let dx = 0; dx < scale; dx++) {
+            const px = (((y + quiet) * scale + dy) * dim + (x + quiet) * scale + dx) * 4;
+            data[px] = data[px + 1] = data[px + 2] = 0;
+          }
+        }
+      }
+    }
+
+    return jsQR(data, dim, dim)?.data ?? null;
+  }
+
+  it("reads back a member claim URL", () => {
+    const url = "https://fitwell.venusgym280.workers.dev/join/8Y6P5H";
+    expect(roundTrip(url)).toBe(url);
+  });
+
+  it("reads back a kiosk check-in token", () => {
+    /* Roughly the shape of a rotating QR token: prefix, payload, signature. */
+    const token = `fw1.${"a".repeat(40)}.${"b".repeat(32)}`;
+    expect(roundTrip(token)).toBe(token);
+  });
+
+  it("reads back something tiny", () => {
+    // The old encoder failed even on this, which is what gave it away.
+    expect(roundTrip("HELLO")).toBe("HELLO");
   });
 });

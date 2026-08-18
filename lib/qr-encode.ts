@@ -1,178 +1,39 @@
+import qrcode from "qrcode-generator";
+
 /* ============================================================================
-   QR encoding, byte mode, versions 1-8 with error correction level M.
+   QR encoding.
 
-   Hand-written rather than a dependency: the kiosk rotates a fresh code
-   every 30 seconds and the claim screen draws one per member, both of them
-   short URLs. A QR library is 30-50KB to do what fits in 150 lines, and it
-   would be on the critical path of the screen a member stands in front of.
+   This was a hand-written encoder — 150 lines of Reed-Solomon and bit
+   placement — on the reasoning that a library was 30-50KB to do something
+   small. The reasoning was fine and the code was wrong: a round trip through
+   jsQR (the same decoder the member app's scanner uses) could not read
+   ANYTHING it produced, including a five-character payload.
 
-   Extracted from the kiosk so the member-claim screen can share it.
+   Nobody noticed because a QR that is subtly invalid still looks exactly like
+   a QR. It had been on the kiosk since the check-in screen shipped, so QR
+   check-in has never actually worked — it was only ever looked at, never
+   scanned.
+
+   qrcode-generator is ~10KB, has been the reference implementation for
+   fifteen years, and every code it makes is verified by the round-trip test
+   in tests/qr-and-money.test.ts.
+
+   Error correction level M: enough redundancy to survive a phone camera at
+   arm's length on a slightly grubby counter screen, without the density that
+   makes level Q or H hard to focus on.
    ========================================================================= */
 
-/* Galois field tables for Reed-Solomon. */
-const EXP = new Uint8Array(512);
-const LOG = new Uint8Array(256);
-(() => {
-  let x = 1;
-  for (let i = 0; i < 255; i++) {
-    EXP[i] = x;
-    LOG[x] = i;
-    x <<= 1;
-    if (x & 0x100) x ^= 0x11d;
-  }
-  for (let i = 255; i < 512; i++) EXP[i] = EXP[i - 255];
-})();
-
-const mul = (a: number, b: number) => (a && b ? EXP[LOG[a] + LOG[b]] : 0);
-
-function rsGenerator(degree: number): number[] {
-  let poly = [1];
-  for (let i = 0; i < degree; i++) {
-    const next = new Array(poly.length + 1).fill(0);
-    for (let j = 0; j < poly.length; j++) {
-      next[j] ^= poly[j];
-      next[j + 1] ^= mul(poly[j], EXP[i]);
-    }
-    poly = next;
-  }
-  return poly;
-}
-
-function rsEncode(data: number[], ecLen: number): number[] {
-  const gen = rsGenerator(ecLen);
-  const res = new Array(ecLen).fill(0);
-  for (const byte of data) {
-    const factor = byte ^ res[0];
-    res.shift();
-    res.push(0);
-    for (let i = 0; i < ecLen; i++) res[i] ^= mul(gen[i + 1], factor);
-  }
-  return res;
-}
-
-/* Version capacities (byte mode, EC level L) and their EC codewords. */
-const VERSIONS = [
-  { v: 5, size: 37, data: 108, ec: 26, blocks: 1 },
-  { v: 6, size: 41, data: 136, ec: 18, blocks: 2 },
-  { v: 7, size: 45, data: 156, ec: 20, blocks: 2 },
-  { v: 8, size: 49, data: 194, ec: 24, blocks: 2 },
-];
-
-const ALIGN: Record<number, number[]> = {
-  5: [6, 30], 6: [6, 34], 7: [6, 22, 38], 8: [6, 24, 42],
-};
-
 export function encodeQr(text: string): boolean[][] {
-  const bytes = new TextEncoder().encode(text);
-  const spec = VERSIONS.find((s) => bytes.length + 3 <= s.data);
-  if (!spec) throw new Error("payload too long for this encoder");
+  /* Type 0 = let the library choose the smallest version that fits. Fixing a
+     version was the other latent bug in the old encoder: its table started at
+     version 5, so a six-character code produced a needlessly dense 37x37
+     grid that a camera has to work harder to resolve. */
+  const qr = qrcode(0, "M");
+  qr.addData(text);
+  qr.make();
 
-  /* ── bitstream: mode + length + data + terminator + padding ── */
-  const bits: number[] = [];
-  const push = (val: number, len: number) => {
-    for (let i = len - 1; i >= 0; i--) bits.push((val >> i) & 1);
-  };
-
-  push(0b0100, 4);          // byte mode
-  push(bytes.length, 8);    // versions 1-9 use an 8-bit length
-  for (const b of bytes) push(b, 8);
-
-  const capacityBits = spec.data * 8;
-  push(0, Math.min(4, capacityBits - bits.length));
-  while (bits.length % 8) bits.push(0);
-
-  const codewords: number[] = [];
-  for (let i = 0; i < bits.length; i += 8) {
-    codewords.push(parseInt(bits.slice(i, i + 8).join(""), 2));
-  }
-  const PAD = [0xec, 0x11];
-  for (let i = 0; codewords.length < spec.data; i++) codewords.push(PAD[i % 2]);
-
-  /* ── error correction, interleaved across blocks ── */
-  const perBlock = Math.floor(spec.data / spec.blocks);
-  const dataBlocks: number[][] = [];
-  const ecBlocks: number[][] = [];
-  for (let b = 0; b < spec.blocks; b++) {
-    const chunk = codewords.slice(b * perBlock, (b + 1) * perBlock);
-    dataBlocks.push(chunk);
-    ecBlocks.push(rsEncode(chunk, spec.ec));
-  }
-
-  const final: number[] = [];
-  for (let i = 0; i < perBlock; i++)
-    for (const blk of dataBlocks) if (i < blk.length) final.push(blk[i]);
-  for (let i = 0; i < spec.ec; i++) for (const blk of ecBlocks) final.push(blk[i]);
-
-  /* ── matrix ── */
-  const n = spec.size;
-  const m: (boolean | null)[][] = Array.from({ length: n }, () => new Array(n).fill(null));
-
-  const finder = (r: number, c: number) => {
-    for (let y = -1; y <= 7; y++)
-      for (let x = -1; x <= 7; x++) {
-        const yy = r + y, xx = c + x;
-        if (yy < 0 || yy >= n || xx < 0 || xx >= n) continue;
-        const on =
-          (y >= 0 && y <= 6 && (x === 0 || x === 6)) ||
-          (x >= 0 && x <= 6 && (y === 0 || y === 6)) ||
-          (y >= 2 && y <= 4 && x >= 2 && x <= 4);
-        m[yy][xx] = on;
-      }
-  };
-  finder(0, 0); finder(0, n - 7); finder(n - 7, 0);
-
-  for (const c of ALIGN[spec.v] ?? [])
-    for (const r of ALIGN[spec.v] ?? []) {
-      if ((r <= 8 && c <= 8) || (r <= 8 && c >= n - 9) || (r >= n - 9 && c <= 8)) continue;
-      for (let y = -2; y <= 2; y++)
-        for (let x = -2; x <= 2; x++)
-          m[r + y][c + x] = Math.max(Math.abs(y), Math.abs(x)) !== 1;
-    }
-
-  for (let i = 8; i < n - 8; i++) {
-    if (m[6][i] === null) m[6][i] = i % 2 === 0;
-    if (m[i][6] === null) m[i][6] = i % 2 === 0;
-  }
-  m[n - 8][8] = true; // dark module
-
-  // Reserve format areas.
-  for (let i = 0; i < 9; i++) {
-    if (m[8][i] === null) m[8][i] = false;
-    if (m[i][8] === null) m[i][8] = false;
-  }
-  for (let i = n - 8; i < n; i++) {
-    if (m[8][i] === null) m[8][i] = false;
-    if (m[i][8] === null) m[i][8] = false;
-  }
-
-  /* ── place data, mask 0, boustrophedon from bottom-right ── */
-  let bitIndex = 0;
-  const stream: number[] = [];
-  for (const cw of final) for (let i = 7; i >= 0; i--) stream.push((cw >> i) & 1);
-
-  let upward = true;
-  for (let col = n - 1; col > 0; col -= 2) {
-    if (col === 6) col--; // skip the vertical timing line
-    for (let i = 0; i < n; i++) {
-      const row = upward ? n - 1 - i : i;
-      for (const c of [col, col - 1]) {
-        if (m[row][c] !== null) continue;
-        const bit = bitIndex < stream.length ? stream[bitIndex++] : 0;
-        m[row][c] = ((row + c) % 2 === 0 ? bit ^ 1 : bit) === 1;
-      }
-    }
-    upward = !upward;
-  }
-
-  /* ── format info: EC level L, mask 0 ── */
-  const FORMAT = 0b111011111000100;
-  for (let i = 0; i <= 5; i++) m[8][i] = ((FORMAT >> i) & 1) === 1;
-  m[8][7] = ((FORMAT >> 6) & 1) === 1;
-  m[8][8] = ((FORMAT >> 7) & 1) === 1;
-  m[7][8] = ((FORMAT >> 8) & 1) === 1;
-  for (let i = 9; i < 15; i++) m[14 - i][8] = ((FORMAT >> i) & 1) === 1;
-  for (let i = 0; i < 8; i++) m[n - 1 - i][8] = ((FORMAT >> i) & 1) === 1;
-  for (let i = 8; i < 15; i++) m[8][n - 15 + i] = ((FORMAT >> i) & 1) === 1;
-
-  return m.map((row) => row.map((cell) => cell === true));
+  const size = qr.getModuleCount();
+  return Array.from({ length: size }, (_, row) =>
+    Array.from({ length: size }, (_, col) => qr.isDark(row, col)),
+  );
 }
