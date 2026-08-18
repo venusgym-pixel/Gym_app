@@ -2,6 +2,8 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { memberAuthEmail } from "@/lib/auth/code-format";
 import { createBrowserDb } from "@/lib/db/client";
 import {
   Cta, ErrorNote, Label, Logo, PillInput, Screen, Segmented, Sub, Title,
@@ -18,7 +20,7 @@ import {
    no password. Staff use email + password.
    ========================================================================= */
 
-const MODES = ["OTP", "Password"] as const;
+const MODES = ["Member", "Staff"] as const;
 type Mode = (typeof MODES)[number];
 
 /** 10 digits, first one 6-9 — the Indian mobile range. */
@@ -32,34 +34,45 @@ function LoginInner() {
   const params = useSearchParams();
   const next = params.get("next");
 
-  const [mode, setMode] = useState<Mode>("OTP");
+  const [mode, setMode] = useState<Mode>("Member");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function sendCode() {
+  /**
+   * Members sign in with the number reception typed when it created them.
+   *
+   * Supabase needs an email, and members have none, so the phone maps to a
+   * synthetic address they never see. Phone logins would avoid the mapping
+   * but require enabling an SMS provider — the exact dependency this whole
+   * onboarding design exists to avoid.
+   */
+  async function memberSignIn() {
     const e164 = normalisePhone(phone);
     if (!e164) {
-      setError("Enter a 10-digit Indian mobile number.");
+      setError("Enter a 10-digit mobile number.");
       return;
     }
 
     setBusy(true);
     setError(null);
     const db = createBrowserDb();
-    const { error: err } = await db.auth.signInWithOtp({ phone: e164 });
+    const { error: err } = await db.auth.signInWithPassword({
+      email: memberAuthEmail(e164),
+      password,
+    });
     setBusy(false);
 
     if (err) {
-      setError(err.message);
+      // Never confirm whether a number is registered.
+      setError("That number and password didn't match.");
       return;
     }
 
-    const query = new URLSearchParams({ phone: e164 });
-    if (next) query.set("next", next);
-    router.push(`/verify?${query}`);
+    router.replace(next ?? "/");
+    router.refresh();
   }
 
   async function signIn() {
@@ -80,7 +93,7 @@ function LoginInner() {
     router.refresh();
   }
 
-  const otp = mode === "OTP";
+  const member = mode === "Member";
 
   return (
     <Screen>
@@ -102,22 +115,34 @@ function LoginInner() {
       />
 
       <form
-        onSubmit={(e) => { e.preventDefault(); void (otp ? sendCode() : signIn()); }}
+        onSubmit={(e) => { e.preventDefault(); void (member ? memberSignIn() : signIn()); }}
       >
-        {otp ? (
-          <label className="block">
-            <Label>Phone number</Label>
-            <PillInput
-              prefix="+91"
-              type="tel"
-              inputMode="numeric"
-              autoComplete="tel-national"
-              placeholder="98450 21764"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              maxLength={13}
-            />
-          </label>
+        {member ? (
+          <div className="flex flex-col gap-4">
+            <label className="block">
+              <Label>Mobile number</Label>
+              <PillInput
+                prefix="+91"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                placeholder="98450 21764"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                maxLength={13}
+              />
+            </label>
+            <label className="block">
+              <Label>Password</Label>
+              <PillInput
+                type="password"
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </label>
+          </div>
         ) : (
           <div className="flex flex-col gap-4">
             <label className="block">
@@ -144,23 +169,31 @@ function LoginInner() {
         )}
 
         <p className="mt-[10px] text-[11.5px]" style={{ color: "var(--app-ink-40)" }}>
-          {otp
-            ? "We’ll send a 6-digit code on WhatsApp and SMS."
-            : "Staff accounts sign in with a password."}
+          {member
+            ? "The number the gym has for you, and the password you set."
+            : "Staff accounts sign in with email."}
         </p>
 
         <ErrorNote>{error}</ErrorNote>
 
         <Cta className="mt-6" type="submit" loading={busy}>
-          {otp ? "Send code" : "Continue"}
+          Sign in
         </Cta>
       </form>
+
+      {member && (
+        <p className="mt-5 text-center text-[0.855em]">
+          <Link href="/forgot" className="text-app-accent">
+            Forgot password?
+          </Link>
+        </p>
+      )}
 
       <p
         className="mt-auto pt-8 text-center text-[12.5px]"
         style={{ color: "var(--app-ink-45)" }}
       >
-        Trouble signing in? Ask reception
+        New here? Ask reception to set up your app access.
       </p>
     </Screen>
   );

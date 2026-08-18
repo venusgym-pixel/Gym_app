@@ -37,11 +37,21 @@ const PUBLIC_PATHS = [
   "/verify",
   "/set-password",
   "/welcome",
+  /* Claiming app access happens BEFORE the member has an account, so this
+     cannot require one. The code in the URL is the credential, and it is
+     short-lived, single-use and checked against the last four digits of
+     their number. */
+  "/join",
+  "/forgot",
   "/auth/callback",
 ];
 
 function isPublic(pathname: string): boolean {
-  return PUBLIC_PATHS.includes(pathname) || pathname.startsWith("/auth/");
+  return (
+    PUBLIC_PATHS.includes(pathname) ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/join/")
+  );
 }
 
 export async function middleware(request: NextRequest) {

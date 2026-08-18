@@ -44,6 +44,10 @@ function adminClient(): SupabaseClient {
 export type BypassReason =
   | "gym-onboarding"
   | "staff-invite"
+  /* Claiming an app login at the desk: creates an auth.users row, which no
+     RLS policy can reach, and runs before the member has any session at
+     all. Permission is checked in the action above. */
+  | "member-claim"
   /* Reading a gym's WhatsApp token out of Vault to test the connection.
      Deliberately NOT a SQL function callable by `authenticated`: the token
      can send messages billed to the gym, so there is no read path for a

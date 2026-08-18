@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+import { AppAccessCard } from "@/components/admin/app-access";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerDb, requireActor } from "@/lib/db/server";
@@ -40,7 +42,7 @@ export default async function MemberProfile({
   const [{ data: member }, { data: plans }] = await Promise.all([
     db.from("members")
       .select(`id, member_code, full_name, phone, email, date_of_birth, gender,
-               joined_on, emergency_contact_name, emergency_contact_phone,
+               joined_on, emergency_contact_name, emergency_contact_phone, claimed_at, user_id,
                memberships ( id, status, started_on, expires_on, price_paise, plans ( name ) )`)
       .eq("gym_id", actor.gymId).eq("id", id).maybeSingle(),
     db.from("plans")
@@ -125,6 +127,16 @@ export default async function MemberProfile({
         </Card>
 
         <div className="space-y-4">
+          <Card title="App access">
+            <AppAccessCard
+              memberId={m.id}
+              claimed={Boolean((m as unknown as { user_id: string | null }).user_id)}
+              claimedAt={(m as unknown as { claimed_at: string | null }).claimed_at}
+              canEdit
+              joinBase={`https://${(await headers()).get("host") ?? ""}`}
+            />
+          </Card>
+
           <Card title="Front desk">
             <CheckInButton memberId={m.id} />
           </Card>
