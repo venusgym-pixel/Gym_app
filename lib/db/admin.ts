@@ -44,6 +44,12 @@ function adminClient(): SupabaseClient {
 export type BypassReason =
   | "gym-onboarding"
   | "staff-invite"
+  /* Reading a gym's WhatsApp token out of Vault to test the connection.
+     Deliberately NOT a SQL function callable by `authenticated`: the token
+     can send messages billed to the gym, so there is no read path for a
+     browser session at all — only the service role, server-side, after the
+     caller's settings.edit permission has been checked in application code. */
+  | "whatsapp-test"
   | "cron-worker"
   | "webhook"
   | "dpdp-erasure";
@@ -81,7 +87,13 @@ export async function withGymScope<T>(
  * for this to serve a user request, you want a policy, not this function.
  */
 export function unsafeAcrossAllGyms(
-  reason: Extract<BypassReason, "cron-worker" | "gym-onboarding">,
+  /* "webhook" is here because a provider callback genuinely cannot name its
+     tenant: Meta identifies a delivery receipt by its own message id, and the
+     webhook subscription handshake arrives with nothing but a verify token.
+     Both have to be looked up across gyms before the gym is even known. The
+     handler authenticates the request itself — signature on receipts, token
+     match on the handshake — before touching anything. */
+  reason: Extract<BypassReason, "cron-worker" | "gym-onboarding" | "webhook">,
 ): SupabaseClient {
   void reason;
   return adminClient();

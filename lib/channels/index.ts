@@ -50,82 +50,16 @@ const logAdapter: ChannelAdapter = {
   },
 };
 
-/* ── WhatsApp, via Meta Cloud API ─────────────────────────────────────────── */
-
-const whatsappAdapter: ChannelAdapter = {
-  name: "whatsapp-cloud",
-  get configured() {
-    return Boolean(process.env.META_SYSTEM_USER_TOKEN && process.env.META_PHONE_NUMBER_ID);
-  },
-
-  async send(message) {
-    const token = process.env.META_SYSTEM_USER_TOKEN;
-    const phoneNumberId = process.env.META_PHONE_NUMBER_ID;
-    if (!token || !phoneNumberId) {
-      return { ok: false, error: "whatsapp not configured", retryable: false };
-    }
-    if (!message.toPhone) {
-      return { ok: false, error: "no phone number on member", retryable: false };
-    }
-
-    try {
-      const res = await fetch(
-        `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-        {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json",
-          },
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: message.toPhone.replace(/^\+/, ""),
-            type: "text",
-            text: { body: message.body },
-          }),
-        },
-      );
-
-      const json = (await res.json()) as {
-        messages?: { id: string }[];
-        error?: { message?: string; code?: number };
-      };
-
-      if (!res.ok) {
-        /* 4xx is our mistake — a bad template or an unregistered number — and
-           retrying it just burns quota. 5xx and 429 are worth another go. */
-        const retryable = res.status >= 500 || res.status === 429;
-        return {
-          ok: false,
-          error: json.error?.message ?? `HTTP ${res.status}`,
-          retryable,
-        };
-      }
-
-      return { ok: true, providerMessageId: json.messages?.[0]?.id ?? "unknown" };
-    } catch (e) {
-      // Network failure: always worth retrying.
-      return { ok: false, error: (e as Error).message, retryable: true };
-    }
-  },
-};
-
 /* ── registry ─────────────────────────────────────────────────────────────── */
 
-const ADAPTERS: Partial<Record<NotificationChannel, ChannelAdapter>> = {
-  whatsapp: whatsappAdapter,
-};
-
-/** Returns the configured adapter for a channel, or the log fallback. */
-export function adapterFor(channel: NotificationChannel): ChannelAdapter {
-  const adapter = ADAPTERS[channel];
-  return adapter?.configured ? adapter : logAdapter;
+/** The fallback for every channel with nothing wired up behind it. */
+export function adapterFor(): ChannelAdapter {
+  return logAdapter;
 }
 
 /** For the settings screen: which channels can actually deliver today. */
 export function channelStatus(): Record<string, boolean> {
   return {
-    whatsapp: whatsappAdapter.configured,
     sms: Boolean(process.env.MSG91_AUTH_KEY),
     email: Boolean(process.env.RESEND_API_KEY),
     push: Boolean(process.env.VAPID_PRIVATE_KEY),

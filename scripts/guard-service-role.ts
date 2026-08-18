@@ -64,6 +64,10 @@ for (const file of walk(ROOT)) {
   const isAllowed =
     ALLOWED.includes(rel) ||
     rel.startsWith(path.join("app", "api", "jobs")) ||
+    /* Provider callbacks arrive with no session and cannot name their tenant:
+       Meta identifies a receipt by its own message id. The handler verifies
+       the HMAC signature before it writes anything. */
+    rel.startsWith(path.join("app", "api", "webhooks")) ||
     rel.startsWith(path.join("tests", "support"));
 
   if (isAllowed) continue;

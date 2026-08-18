@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { unsafeAcrossAllGyms } from "@/lib/db/admin";
 import { adapterFor } from "@/lib/channels";
+import { sendWhatsApp, type WhatsAppConfig } from "@/lib/channels/whatsapp";
 import type { NotificationChannel } from "@/lib/db/database.types";
 
 /* ============================================================================
@@ -89,11 +90,79 @@ async function runHourly() {
 
 interface OutboxRow {
   id: string;
+  gym_id: string;
+  rule_key: string;
   channel: NotificationChannel;
   to_phone: string | null;
   to_email: string | null;
   subject: string | null;
   body: string;
+  vars: Record<string, string> | null;
+}
+
+/** A gym's WhatsApp credentials plus the templates it may send. */
+interface GymWhatsApp {
+  config: WhatsAppConfig | null;
+  /** rule_key -> the approved template to send for it. */
+  templates: Map<string, { name: string; language: string; paramKeys: string[] }>;
+}
+
+/**
+ * Loads a gym's WhatsApp setup once per drain, not once per message.
+ *
+ * A batch is usually one gym's reminder ladder firing together, so without
+ * this the same two queries run fifty times — and the token read hits Vault
+ * each time.
+ */
+async function loadWhatsApp(
+  db: ReturnType<typeof unsafeAcrossAllGyms>,
+  gymId: string,
+): Promise<GymWhatsApp> {
+  const [{ data: cfg }, { data: tpl }] = await Promise.all([
+    db
+      .from("whatsapp_configs")
+      .select("phone_number_id, token_secret_id")
+      .eq("gym_id", gymId)
+      .maybeSingle(),
+    db
+      .from("message_templates")
+      .select("key, provider_template_name, provider_language, param_keys")
+      .eq("gym_id", gymId)
+      .eq("channel", "whatsapp")
+      .eq("is_active", true),
+  ]);
+
+  const templates = new Map<string, { name: string; language: string; paramKeys: string[] }>();
+  for (const t of (tpl ?? []) as {
+    key: string;
+    provider_template_name: string | null;
+    provider_language: string | null;
+    param_keys: string[] | null;
+  }[]) {
+    if (!t.provider_template_name) continue;
+    templates.set(t.key, {
+      name: t.provider_template_name,
+      language: t.provider_language ?? "en",
+      paramKeys: t.param_keys ?? [],
+    });
+  }
+
+  const row = cfg as { phone_number_id: string; token_secret_id: string | null } | null;
+  if (!row?.token_secret_id) return { config: null, templates };
+
+  /* The token is only ever decrypted here, by the service role, at send
+     time. No authenticated session can read it back. */
+  const { data: secret } = await db
+    .schema("vault")
+    .from("decrypted_secrets")
+    .select("decrypted_secret")
+    .eq("id", row.token_secret_id)
+    .maybeSingle();
+
+  const token = (secret as { decrypted_secret: string } | null)?.decrypted_secret;
+  if (!token) return { config: null, templates };
+
+  return { config: { phoneNumberId: row.phone_number_id, token }, templates };
 }
 
 /**
@@ -115,16 +184,55 @@ async function runDrain() {
   const batch = (data ?? []) as OutboxRow[];
   if (batch.length === 0) return { claimed: 0, sent: 0, failed: 0 };
 
+  /* One load per gym in the batch, shared across its messages. */
+  const whatsappByGym = new Map<string, Promise<GymWhatsApp>>();
+  const gymWhatsApp = (gymId: string) => {
+    let p = whatsappByGym.get(gymId);
+    if (!p) { p = loadWhatsApp(db, gymId); whatsappByGym.set(gymId, p); }
+    return p;
+  };
+
   const results = await Promise.all(
     batch.map(async (row) => {
-      const adapter = adapterFor(row.channel);
-      const outcome = await adapter.send({
-        channel: row.channel,
-        toPhone: row.to_phone,
-        toEmail: row.to_email,
-        subject: row.subject,
-        body: row.body,
-      });
+      let outcome;
+
+      if (row.channel === "whatsapp") {
+        const { config, templates } = await gymWhatsApp(row.gym_id);
+        if (!config) {
+          /* Not an error worth retrying: the gym has not connected WhatsApp.
+             Logged so the message is visibly not-sent rather than silently
+             counted as delivered, which is what the log adapter would do. */
+          outcome = {
+            ok: false as const,
+            error: "WhatsApp is not connected for this gym (Settings → WhatsApp)",
+            retryable: false,
+          };
+        } else {
+          const t = templates.get(row.rule_key);
+          const vars = row.vars ?? {};
+          outcome = await sendWhatsApp(
+            config,
+            row.to_phone,
+            row.body,
+            t
+              ? {
+                  name: t.name,
+                  language: t.language,
+                  params: t.paramKeys.map((k) => vars[k] ?? ""),
+                }
+              : null,
+          );
+        }
+      } else {
+        const adapter = adapterFor();
+        outcome = await adapter.send({
+          channel: row.channel,
+          toPhone: row.to_phone,
+          toEmail: row.to_email,
+          subject: row.subject,
+          body: row.body,
+        });
+      }
 
       await db.rpc("mark_outbox_result", {
         p_id: row.id,

@@ -1,7 +1,9 @@
+import { headers } from "next/headers";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Card, PageHeader } from "@/components/admin/shell";
 import { channelStatus } from "@/lib/channels";
 import { GymSettingsForm } from "./form";
+import { WhatsAppSetup } from "./whatsapp";
 
 /* ============================================================================
    A-42 · Settings.
@@ -33,6 +35,30 @@ export default async function SettingsPage() {
     timezone: string; currency: string; reminder_hour: number;
   };
 
+  const { data: wa } = await db
+    .from("whatsapp_configs")
+    .select(
+      "phone_number_id, waba_id, display_number, verify_token, token_secret_id, last_error, last_ok_at",
+    )
+    .eq("gym_id", actor.gymId)
+    .maybeSingle();
+
+  const w = wa as {
+    phone_number_id: string;
+    waba_id: string | null;
+    display_number: string | null;
+    verify_token: string | null;
+    token_secret_id: string | null;
+    last_error: string | null;
+    last_ok_at: string | null;
+  } | null;
+
+  /* Built from the request rather than hardcoded. This app moved host
+     mid-build, and a stale webhook URL fails silently — Meta just stops
+     delivering receipts and the log quietly stops at "sent". */
+  const host = (await headers()).get("host") ?? "your-domain";
+  const webhookUrl = `https://${host}/api/webhooks/whatsapp`;
+
   const channels = channelStatus();
 
   return (
@@ -47,6 +73,27 @@ export default async function SettingsPage() {
         <Card><GymSettingsForm gym={g} /></Card>
 
         <div className="space-y-4">
+          <Card title="WhatsApp">
+            <WhatsAppSetup
+              webhookUrl={webhookUrl}
+              config={
+                w
+                  ? {
+                      phone_number_id: w.phone_number_id,
+                      waba_id: w.waba_id,
+                      display_number: w.display_number,
+                      verify_token: w.verify_token,
+                      /* Whether a token exists, never the token. There is no
+                         read path for it from a browser session at all. */
+                      has_token: Boolean(w.token_secret_id),
+                      last_error: w.last_error,
+                      last_ok_at: w.last_ok_at,
+                    }
+                  : null
+              }
+            />
+          </Card>
+
           <Card title="Message channels">
             <ul className="divide-y divide-neutral-300">
               {Object.entries(channels).map(([name, on]) => (
