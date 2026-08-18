@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatDate } from "@/lib/money";
+import { SESSION_MINUTES, inProgress, sessionEndsAt } from "@/lib/attendance";
 
 /* ============================================================================
    A-21 · Attendance.
@@ -60,6 +61,14 @@ export default async function AttendancePage() {
 
   const today = byDay.get(todayKey) ?? [];
   const uniqueToday = new Set(today.map((v) => v.members?.id)).size;
+
+  /* Who is still counted as being in the building. Nobody scans on the way
+     out, so this is entry time plus the session window, not an observation —
+     unique members rather than check-ins, because the same person scanning
+     twice is one body in the room. */
+  const inNow = new Set(
+    today.filter((v) => inProgress(v.checked_in_at)).map((v) => v.members?.id),
+  ).size;
   const busiest = [...byDay.entries()].sort((a, b) => b[1].length - a[1].length)[0];
 
   return (
@@ -81,7 +90,7 @@ export default async function AttendancePage() {
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile value={today.length} label="Check-ins today" />
         <StatTile value={uniqueToday} label="Unique members today" />
-        <StatTile value={visits.length} label="Recent visits" />
+        <StatTile value={inNow} label="In the gym now" hint={`${SESSION_MINUTES}-minute sessions`} />
         <StatTile
           value={busiest ? busiest[1].length : 0}
           label="Busiest day"
@@ -106,9 +115,15 @@ export default async function AttendancePage() {
                   >
                     {v.members?.full_name}
                   </Link>
-                  <span className="font-mono text-[10.5px] text-neutral-600 uppercase">
-                    {v.method}
-                  </span>
+                  {inProgress(v.checked_in_at) ? (
+                    <span className="rounded-pill bg-sage-200 px-2 py-0.5 text-[10.5px] font-semibold text-sage-800">
+                      in · till {time(sessionEndsAt(v.checked_in_at).toISOString())}
+                    </span>
+                  ) : (
+                    <span className="font-mono text-[10.5px] text-neutral-600 uppercase">
+                      {v.method}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
