@@ -3,7 +3,9 @@ import { createServerDb, requireActor } from "@/lib/db/server";
 import { can } from "@/lib/auth/permissions";
 import type { GymRole } from "@/lib/db/database.types";
 import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
-import { EditExercise, ExerciseForm, HideExercise, type MachineOption } from "./manage";
+import {
+  DeleteExercise, EditExercise, ExerciseForm, HideExercise, type MachineOption,
+} from "./manage";
 
 /* ============================================================================
    T-05 · Exercise library, with T-14 (add / edit) folded in.
@@ -61,6 +63,7 @@ export default async function ExercisesPage({
   const role = actor.role as GymRole;
   const mayCreate = can(role, "exercises", "create");
   const mayEdit = can(role, "exercises", "edit");
+  const mayDelete = can(role, "exercises", "delete");
   const muscles = [...new Set(all.map((e) => e.primary_muscle))].sort();
   const kit = [...new Set(all.map((e) => e.equipment))].sort();
 
@@ -159,7 +162,10 @@ export default async function ExercisesPage({
               {mayEdit && (
                 <div className="mt-2 flex items-baseline justify-between gap-3">
                   <EditExercise initial={e} machines={kitList} />
-                  <HideExercise id={e.id} name={e.name} />
+                  <span className="flex items-baseline gap-3">
+                    <HideExercise id={e.id} name={e.name} />
+                    {mayDelete && <DeleteExercise id={e.id} name={e.name} />}
+                  </span>
                 </div>
               )}
             </Card>

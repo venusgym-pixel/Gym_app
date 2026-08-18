@@ -125,6 +125,30 @@ export async function retireEquipment(id: string): Promise<ActionResult> {
   return { ok: true, message: "Retired. It no longer appears to trainers." };
 }
 
+/** Hard delete — for kit added by mistake or gone for good. Exercises that
+ *  pointed at it keep working: the FK is `on delete set null`, so they just
+ *  lose the machine link (and with it the down-machine warning). */
+export async function deleteEquipment(id: string): Promise<ActionResult> {
+  const actor = await requireActor();
+  if (!can(actor.role as GymRole, "equipment", "delete")) {
+    return { ok: false, error: "Only an owner or manager can delete equipment." };
+  }
+
+  const db = await createServerDb();
+  const { data, error } = await db
+    .from("equipment")
+    .delete()
+    .eq("id", id)
+    .eq("gym_id", actor.gymId)
+    .select("id");
+
+  if (error) return { ok: false, error: "Could not delete the equipment." };
+  if (!data?.length) return { ok: false, error: "Already gone — refresh the page." };
+
+  revalidatePath("/admin/equipment");
+  return { ok: true, message: "Deleted." };
+}
+
 /** One-click starter inventory, mirroring seed_gym_exercises. */
 export async function seedEquipment(): Promise<ActionResult> {
   const actor = await requireActor();

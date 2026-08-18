@@ -79,6 +79,38 @@ export async function saveExercise(form: FormData): Promise<ActionResult> {
   return { ok: true, message: v.id ? "Saved." : `${v.name} added to the library.` };
 }
 
+/** Hard delete, owner-only. Plans and logged sets reference exercises with
+ *  `on delete restrict`, so the database refuses to delete one that is in
+ *  use — which is exactly right: a plan day or a member's history must not
+ *  lose its exercise. Those get Hide instead. */
+export async function deleteExercise(id: string): Promise<ActionResult> {
+  const actor = await requireActor();
+  if (!can(actor.role as GymRole, "exercises", "delete")) {
+    return { ok: false, error: "Only the owner can delete exercises — hide it instead." };
+  }
+
+  const db = await createServerDb();
+  const { data, error } = await db
+    .from("exercises")
+    .delete()
+    .eq("id", id)
+    .eq("gym_id", actor.gymId)
+    .select("id");
+
+  if (error) {
+    return {
+      ok: false,
+      error: error.code === "23503"
+        ? "This exercise is in a plan or in logged workouts, so it cannot be deleted — hide it instead."
+        : "Could not delete the exercise.",
+    };
+  }
+  if (!data?.length) return { ok: false, error: "Already gone — refresh the page." };
+
+  revalidatePath("/trainer/exercises");
+  return { ok: true, message: "Deleted." };
+}
+
 /** Hide, don't delete: plans and logged sets reference exercises with
  *  `on delete restrict`, so history depends on the row surviving. */
 export async function deactivateExercise(id: string): Promise<ActionResult> {

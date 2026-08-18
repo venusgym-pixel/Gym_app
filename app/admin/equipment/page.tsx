@@ -3,7 +3,8 @@ import { can } from "@/lib/auth/permissions";
 import type { Equipment, GymRole } from "@/lib/db/database.types";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import {
-  EditDisclosure, EquipmentForm, RetireButton, SeedEquipmentButton, StatusButtons, StatusChip,
+  DeleteEquipmentButton, EditDisclosure, EquipmentForm, RetireButton,
+  SeedEquipmentButton, StatusButtons, StatusChip,
 } from "./client";
 
 /* ============================================================================
@@ -138,6 +139,7 @@ export default async function EquipmentPage() {
                       <div className="flex shrink-0 items-center gap-3">
                         {canEdit && <EditDisclosure initial={r} />}
                         {canDelete && <RetireButton id={r.id} name={r.name} />}
+                        {canDelete && <DeleteEquipmentButton id={r.id} name={r.name} />}
                       </div>
                     </li>
                   ))}

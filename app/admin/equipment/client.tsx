@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useTransition } from "react";
 import {
-  retireEquipment, saveEquipment, seedEquipment, setEquipmentStatus,
+  deleteEquipment, retireEquipment, saveEquipment, seedEquipment, setEquipmentStatus,
 } from "@/lib/actions/equipment";
 import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
 import type { ActionResult } from "@/lib/actions/members";
@@ -157,6 +157,31 @@ export function RetireButton({ id, name }: { id: string; name: string }) {
         className="text-[11.5px] text-neutral-600 underline hover:text-neutral-800 disabled:opacity-50"
       >
         {pending ? "Retiring…" : "Retire"}
+      </button>
+      {error && <span className="text-[11px] text-accent-700">{error}</span>}
+    </>
+  );
+}
+
+export function DeleteEquipmentButton({ id, name }: { id: string; name: string }) {
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          if (!window.confirm(`Delete "${name}" permanently? Exercises linked to it lose the machine link. This cannot be undone.`)) return;
+          start(async () => {
+            const r = await deleteEquipment(id);
+            if (!r.ok) setError(r.error);
+          });
+        }}
+        className="text-[11.5px] text-accent-700 underline hover:text-accent-800 disabled:opacity-50"
+      >
+        {pending ? "Deleting…" : "Delete"}
       </button>
       {error && <span className="text-[11px] text-accent-700">{error}</span>}
     </>

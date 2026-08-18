@@ -152,6 +152,55 @@ describe("trainer delete policies on plan structure (the 0017 gap)", () => {
     expect(Number(days[0].n)).toBe(2);
   });
 
+  it("lets the owner hard-delete equipment, but refuses a trainer", async () => {
+    await db.as(
+      actor(gymA, "owner"),
+      `insert into equipment (gym_id, name, category) values ($1, 'Mistake machine', 'machine')`,
+      [gymA.gymId],
+    );
+
+    await db.as(actor(gymA, "trainer"), `delete from equipment where name = 'Mistake machine'`);
+    const still = await db.sql(
+      `select 1 from equipment where gym_id = $1 and name = 'Mistake machine'`, [gymA.gymId],
+    );
+    expect(still).toHaveLength(1);
+
+    await db.as(actor(gymA, "owner"), `delete from equipment where name = 'Mistake machine'`);
+    const gone = await db.sql(
+      `select 1 from equipment where gym_id = $1 and name = 'Mistake machine'`, [gymA.gymId],
+    );
+    expect(gone).toHaveLength(0);
+  });
+
+  it("refuses deleting an exercise that a plan uses, allows an unused one", async () => {
+    // 'Barbell row' still sits in the starter plan's Pull day (the earlier
+    // tests removed day 3 and day 1's first slot, not this one) — FK
+    // restrict must hold.
+    await expect(
+      db.as(
+        actor(gymA, "owner"),
+        `delete from exercises where gym_id = $1 and name = 'Barbell row'`,
+        [gymA.gymId],
+      ),
+    ).rejects.toThrow();
+
+    await db.as(
+      actor(gymA, "owner"),
+      `insert into exercises (gym_id, name, primary_muscle, equipment, is_custom)
+       values ($1, 'Typo exercise', 'Chest', 'Barbell', true)`,
+      [gymA.gymId],
+    );
+    await db.as(
+      actor(gymA, "owner"),
+      `delete from exercises where gym_id = $1 and name = 'Typo exercise'`,
+      [gymA.gymId],
+    );
+    const gone = await db.sql(
+      `select 1 from exercises where gym_id = $1 and name = 'Typo exercise'`, [gymA.gymId],
+    );
+    expect(gone).toHaveLength(0);
+  });
+
   it("still refuses a member deleting plan structure", async () => {
     const plans = await db.sql<{ id: string }>(
       `select id from workout_plans where gym_id = $1`, [gymA.gymId],
