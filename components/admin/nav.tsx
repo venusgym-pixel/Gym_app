@@ -36,6 +36,7 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Payments",    href: "/admin/payments",   module: "payments",    ready: true },
   { label: "Attendance",  href: "/admin/attendance", module: "attendance",  ready: true },
   { label: "Kiosk",       href: "/admin/kiosk",      module: "attendance",  ready: true },
+  { label: "Equipment",   href: "/admin/equipment",  module: "equipment",   ready: true },
   { label: "Coaching",    href: "/trainer",          module: "workouts",    ready: true },
   { label: "Messaging",   href: "/admin/messaging",  module: "messaging",   ready: true },
   { label: "Reports",     href: "/admin/reports",    module: "reports",     ready: true },

@@ -71,7 +71,9 @@ for (const t of created) {
     );
   }
 
-  const hasGymId = /^\s*gym_id\s+uuid\s+not\s+null/im.test(t.body);
+  // `primary key` implies NOT NULL, so a gym_id-keyed table (whatsapp_configs)
+  // satisfies the invariant without spelling it out.
+  const hasGymId = /^\s*gym_id\s+uuid\s+(?:not\s+null|primary\s+key)/im.test(t.body);
   if (!hasGymId && !(t.table in NON_TENANT)) {
     problems.push(
       `${t.file}:${t.line}  table "${t.table}" has no "gym_id uuid not null"\n` +

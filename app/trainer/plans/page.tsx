@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { can } from "@/lib/auth/permissions";
+import type { GymRole } from "@/lib/db/database.types";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 
 /* ============================================================================
@@ -85,6 +87,16 @@ export default async function PlansPage() {
         eyebrow="Coaching"
         title="Workout plans"
         sub="Assign one from a client's page — their history belongs next to the choice."
+        actions={
+          can(actor.role as GymRole, "workouts", "create") ? (
+            <Link
+              href="/trainer/plans/new"
+              className="rounded-pill bg-neutral-900 px-4 py-2 text-[13px] font-semibold text-neutral-100 hover:bg-neutral-800"
+            >
+              + New plan
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -106,9 +118,8 @@ export default async function PlansPage() {
       {rows.length === 0 ? (
         <Card>
           <EmptyState>
-            No plans yet. Run seed_starter_plan() to create a 3-day full-body
-            split, or build one in the Supabase dashboard — a plan editor is
-            the next thing to land here.
+            No plans yet. Create one with <em>New plan</em> above — you pick the
+            split, then fill each day from the exercise library.
           </EmptyState>
         </Card>
       ) : (
@@ -121,11 +132,25 @@ export default async function PlansPage() {
               <Card key={p.id}>
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <h2 className="text-[19px]">{p.name}</h2>
+                    <h2 className="text-[19px]">
+                      <Link href={`/trainer/plans/${p.id}`} className="hover:underline">
+                        {p.name}
+                      </Link>
+                    </h2>
                     {p.goal && <p className="text-[12.5px] text-neutral-700">{p.goal}</p>}
                   </div>
                   <div className="text-right text-[12px] text-neutral-700">
-                    <div>{p.days_per_week} days a week</div>
+                    <div>
+                      {p.days_per_week} days a week
+                      {can(actor.role as GymRole, "workouts", "edit") && (
+                        <>
+                          {" · "}
+                          <Link href={`/trainer/plans/${p.id}`} className="underline">
+                            edit
+                          </Link>
+                        </>
+                      )}
+                    </div>
                     <div className={members.length ? "text-sage-700" : "text-neutral-600"}>
                       {members.length === 0
                         ? "nobody on it"

@@ -200,6 +200,33 @@ export interface Branch {
   created_at: string;
 }
 
+export type EquipmentCategory =
+  | "machine"
+  | "free_weight"
+  | "cable"
+  | "cardio"
+  | "bench_rack"
+  | "accessory";
+
+export type EquipmentStatus = "working" | "maintenance" | "out_of_order";
+
+export interface Equipment {
+  id: string;
+  gym_id: string;
+  name: string;
+  category: EquipmentCategory;
+  brand: string | null;
+  model: string | null;
+  quantity: number;
+  status: EquipmentStatus;
+  photo_url: string | null;
+  purchased_on: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface MembershipFreeze {
   id: string;
   gym_id: string;
@@ -235,6 +262,7 @@ export interface Database {
       plans: Table<Plan>;
       memberships: Table<Membership>;
       membership_freezes: Table<MembershipFreeze>;
+      equipment: Table<Equipment>;
     };
     Views: Record<never, never>;
     Functions: {

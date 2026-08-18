@@ -23,6 +23,7 @@ export const MODULES = [
   "attendance",
   "workouts",
   "exercises",
+  "equipment",
   "diet",
   "progress",
   "staff",
@@ -75,6 +76,7 @@ export const MATRIX: Record<GymRole, Partial<Record<Module, Grant>>> = {
     attendance: ALL,
     workouts: g("v", "all"),
     exercises: g("v", "all"),
+    equipment: ALL, // inventory is floor operations, and the manager runs the floor
     diet: g("v", "all"),
     progress: g("v", "all"),
     staff: g("v", "all"),
@@ -90,6 +92,7 @@ export const MATRIX: Record<GymRole, Partial<Record<Module, Grant>>> = {
     attendance: g("v", "assigned"),
     workouts: g("vced", "assigned"),
     exercises: g("vce", "all"),
+    equipment: g("v", "all"), // must see what is broken before programming it
     diet: g("vc", "assigned"),
     progress: g("vce", "assigned"),
     messaging: g("vc", "assigned"),
@@ -103,6 +106,7 @@ export const MATRIX: Record<GymRole, Partial<Record<Module, Grant>>> = {
     payments: g("vc", "all"),
     attendance: g("vc", "all"),
     exercises: g("v", "all"),
+    equipment: g("v", "all"), // "is the leg press fixed yet?" gets asked at the desk
     leads: ALL,
     messaging: g("v", "all"),
   },

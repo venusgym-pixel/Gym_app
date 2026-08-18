@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { can } from "@/lib/auth/permissions";
+import type { GymRole } from "@/lib/db/database.types";
 import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
+import { EditExercise, ExerciseForm, HideExercise, type MachineOption } from "./manage";
 
 /* ============================================================================
-   T-05 · Exercise library.
+   T-05 · Exercise library, with T-14 (add / edit) folded in.
 
    Filtering is done with links and searchParams rather than client state, so
    a trainer can bookmark "chest, dumbbell only" and the back button behaves.
@@ -19,9 +22,11 @@ interface Exercise {
   primary_muscle: string;
   secondary_muscles: string[];
   equipment: string;
+  equipment_id: string | null;
   difficulty: string;
   instructions: string | null;
   common_mistakes: string | null;
+  video_url: string | null;
   is_custom: boolean;
 }
 
@@ -34,7 +39,7 @@ export default async function ExercisesPage({
   const db = await createServerDb();
   const { muscle, equipment } = await searchParams;
 
-  const [{ data: exercises }] = await Promise.all([
+  const [{ data: exercises }, { data: machines }] = await Promise.all([
     db
       .from("exercises")
       .select("*")
@@ -42,9 +47,20 @@ export default async function ExercisesPage({
       .eq("is_active", true)
       .order("primary_muscle")
       .order("name"),
+    db
+      .from("equipment")
+      .select("id, name, status")
+      .eq("gym_id", actor.gymId)
+      .eq("is_active", true)
+      .order("name"),
   ]);
 
   const all = (exercises ?? []) as Exercise[];
+  const kitList = (machines ?? []) as MachineOption[];
+  const machineStatus = new Map(kitList.map((m) => [m.id, m.status]));
+  const role = actor.role as GymRole;
+  const mayCreate = can(role, "exercises", "create");
+  const mayEdit = can(role, "exercises", "edit");
   const muscles = [...new Set(all.map((e) => e.primary_muscle))].sort();
   const kit = [...new Set(all.map((e) => e.equipment))].sort();
 
@@ -77,6 +93,19 @@ export default async function ExercisesPage({
                    href={(v) => q({ equipment: v })} clearHref={q({ equipment: undefined })} />
       </div>
 
+      {mayCreate && (
+        <Card className="mb-5">
+          <details>
+            <summary className="cursor-pointer list-none text-[13.5px] font-semibold">
+              + Add exercise
+            </summary>
+            <div className="mt-4">
+              <ExerciseForm machines={kitList} />
+            </div>
+          </details>
+        </Card>
+      )}
+
       {shown.length === 0 ? (
         <Card>
           <EmptyState>
@@ -102,6 +131,13 @@ export default async function ExercisesPage({
                 <Tag>{e.primary_muscle}</Tag>
                 <Tag muted>{e.equipment}</Tag>
                 <Tag muted>{e.difficulty}</Tag>
+                {e.equipment_id &&
+                  machineStatus.has(e.equipment_id) &&
+                  machineStatus.get(e.equipment_id) !== "working" && (
+                    <span className="rounded-pill bg-accent-200 px-2 py-0.5 text-[10.5px] font-semibold text-accent-800">
+                      machine down
+                    </span>
+                  )}
               </div>
 
               {e.secondary_muscles.length > 0 && (
@@ -118,6 +154,13 @@ export default async function ExercisesPage({
                 <p className="mt-2 rounded-sm bg-accent-100 px-2.5 py-1.5 text-[11.5px] text-accent-800">
                   Watch for: {e.common_mistakes}
                 </p>
+              )}
+
+              {mayEdit && (
+                <div className="mt-2 flex items-baseline justify-between gap-3">
+                  <EditExercise initial={e} machines={kitList} />
+                  <HideExercise id={e.id} name={e.name} />
+                </div>
               )}
             </Card>
           ))}
