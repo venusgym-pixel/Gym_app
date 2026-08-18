@@ -64,6 +64,14 @@ export default async function MembersPage({
         eyebrow="Members"
         title="Members"
         sub={q ? `Matching “${q}”` : "Everyone on the books."}
+        actions={
+          <Link
+            href="/admin/members/new"
+            className="rounded-pill bg-neutral-900 px-4 py-2 text-[13px] font-semibold text-neutral-100"
+          >
+            Add member
+          </Link>
+        }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
