@@ -1,7 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 /* ============================================================================
    Member bottom tab bar (ui-screens-spec §1.3).
+
+   A client component living in app/m/layout.tsx, not a server component
+   rendered per page. It used to be the latter, taking its active tab as a
+   prop, which meant a tap did nothing at all until the server had rendered
+   the whole next screen — around two seconds on a phone. Reading the path
+   here instead lets the bar stay mounted and move the dot on tap, while the
+   page underneath streams in behind its loading boundary.
 
    The QR button is the centre FAB and is visually the loudest thing on the
    screen, because checking in is the single most-used action in the whole
@@ -15,7 +25,11 @@ const TABS = [
   { href: "/m/more", label: "More" },
 ] as const;
 
-export function MemberTabBar({ current }: { current: string }) {
+export function MemberTabBar() {
+  /* Sub-pages like /m/attendance are reached from a tile rather than a tab, so
+     they match nothing here and no dot lights up. That is honest: none of the
+     four tabs is where you are. */
+  const current = usePathname();
   const [a, b, c, d] = TABS;
 
   /* The height GROWS by the safe-area inset rather than being padded inwards

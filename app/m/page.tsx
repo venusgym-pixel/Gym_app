@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { MemberTabBar } from "@/components/member/nav";
 import { InstallPrompt } from "@/components/member/install";
 import { ViewportBadge } from "@/components/member/viewport-badge";
 import { Screen } from "@/components/ui/primitives";
@@ -58,7 +57,6 @@ export default async function MemberHome() {
             fix this in a moment.
           </p>
         </Screen>
-        <MemberTabBar current="/m" />
       </>
     );
   }
@@ -288,8 +286,6 @@ export default async function MemberHome() {
             forever. It also registers the service worker. */}
         <InstallPrompt />
       </Screen>
-
-      <MemberTabBar current="/m" />
     </>
   );
 }

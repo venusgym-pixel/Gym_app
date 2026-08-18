@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { MemberTabBar } from "@/components/member/nav";
 import { Screen } from "@/components/ui/primitives";
 import { formatDate } from "@/lib/money";
 
@@ -121,8 +120,6 @@ export default async function MorePage() {
           Signed in as {actor.email ?? "this account"}
         </p>
       </Screen>
-
-      <MemberTabBar current="/m/more" />
     </>
   );
 }

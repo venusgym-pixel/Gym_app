@@ -1,5 +1,4 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { MemberTabBar } from "@/components/member/nav";
 import { Screen } from "@/components/ui/primitives";
 import { formatDate } from "@/lib/money";
 import { LogMeasurement } from "./form";
@@ -50,7 +49,6 @@ export default async function ProgressPage() {
     return (
       <>
         <Screen center tabBar><h1 className="text-[1.579em]">No member record</h1></Screen>
-        <MemberTabBar current="/m/progress" />
       </>
     );
   }
@@ -222,8 +220,6 @@ export default async function ProgressPage() {
           } : null}
         />
       </Screen>
-
-      <MemberTabBar current="/m/progress" />
     </>
   );
 }

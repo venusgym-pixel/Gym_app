@@ -421,7 +421,6 @@ function Outcome({ result }: { result: CheckinResponse }) {
           Back to home
         </Link>
       </Screen>
-      <MemberTabBarClient />
     </>
   );
 }
@@ -448,8 +447,7 @@ function Panel({ value, label, accent }: { value: number; label: string; accent?
   );
 }
 
-/* The tab bar is a server component elsewhere; here it is only needed for
-   layout parity after a result, so render the same markup client-side. */
-function MemberTabBarClient() {
-  return <div style={{ height: 96 }} aria-hidden />;
-}
+/* The 96px spacer that used to sit here reserved room for a tab bar this
+   screen never rendered. app/m/layout.tsx renders the real one now, and
+   <Screen tabBar> already reserves its exact height, so a second spacer would
+   just leave a gap. */

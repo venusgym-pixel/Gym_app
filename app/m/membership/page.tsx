@@ -1,7 +1,6 @@
 import { PayFlow } from "./pay";
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { MemberTabBar } from "@/components/member/nav";
 import { Screen } from "@/components/ui/primitives";
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR, gstSplit } from "@/lib/money";
@@ -245,8 +244,6 @@ export default async function MembershipPage() {
           Back to home
         </Link>
       </Screen>
-
-      <MemberTabBar current="/m/membership" />
     </>
   );
 }
