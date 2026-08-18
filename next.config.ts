@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
   */
   experimental: {
     staleTimes: { dynamic: 30, static: 180 },
+    /* Page-data collection forks one worker per core. On this Windows box
+       eleven of them crash the build with 0xC0000409 — but only when the
+       OpenNext adapter drives it, which is why plain `next build` looks
+       fine. Two workers costs a few seconds and builds reliably. */
+    cpus: 2,
   },
 
   /*
