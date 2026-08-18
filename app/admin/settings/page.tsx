@@ -4,6 +4,7 @@ import { Card, PageHeader } from "@/components/admin/shell";
 import { channelStatus } from "@/lib/channels";
 import { GymSettingsForm } from "./form";
 import { WhatsAppSetup } from "./whatsapp";
+import { UpiSetup } from "./upi";
 
 /* ============================================================================
    A-42 · Settings.
@@ -25,7 +26,7 @@ export default async function SettingsPage() {
 
   const { data: gym } = await db
     .from("gyms")
-    .select("id, name, slug, address, phone, email, gstin, timezone, currency, reminder_hour")
+    .select("id, name, slug, address, phone, email, gstin, timezone, currency, reminder_hour, upi_qr_path, upi_vpa")
     .eq("id", actor.gymId)
     .single();
 
@@ -33,7 +34,12 @@ export default async function SettingsPage() {
     id: string; name: string; slug: string; address: string | null;
     phone: string | null; email: string | null; gstin: string | null;
     timezone: string; currency: string; reminder_hour: number;
+    upi_qr_path: string | null; upi_vpa: string | null;
   };
+
+  const upiQrUrl = g.upi_qr_path
+    ? db.storage.from("gym-public").getPublicUrl(g.upi_qr_path).data.publicUrl
+    : null;
 
   const { data: wa } = await db
     .from("whatsapp_configs")
@@ -73,6 +79,10 @@ export default async function SettingsPage() {
         <Card><GymSettingsForm gym={g} /></Card>
 
         <div className="space-y-4">
+          <Card title="Taking payment">
+            <UpiSetup qrUrl={upiQrUrl} vpa={g.upi_vpa} />
+          </Card>
+
           <Card title="WhatsApp">
             <WhatsAppSetup
               webhookUrl={webhookUrl}

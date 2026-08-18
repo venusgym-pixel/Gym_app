@@ -181,6 +181,35 @@ export async function recordPayment(form: FormData): Promise<ActionResult> {
 
   const row = Array.isArray(data) ? data[0] : data;
 
+  /* An optional photo of the receipt, or of the UPI confirmation on the
+     member's phone. Attached AFTER the payment is recorded, deliberately:
+     money the gym has actually taken must not fail to record because an
+     image would not upload. The payment is the fact; the photo is evidence.
+
+     Marked verified on the spot — staff were standing there, so recording it
+     IS the verification. Only member-submitted claims wait in a queue. */
+  const receipt = form.get("receipt") as File | null;
+  if (receipt && receipt.size > 0 && row?.payment_id) {
+    const ext = receipt.name.split(".").pop()?.toLowerCase() ?? "jpg";
+    const path = actor.gymId + "/" + v.member_id + "/desk-" + Date.now() + "." + ext;
+
+    const { error: upErr } = await db.storage
+      .from("payment-proofs")
+      .upload(path, receipt, { contentType: receipt.type });
+
+    if (!upErr) {
+      await db
+        .from("payments")
+        .update({
+          proof_path: path,
+          proof_kind: v.method === "cash" ? "cash_receipt" : "other",
+          verified_by: actor.userId,
+          verified_at: new Date().toISOString(),
+        })
+        .eq("id", row.payment_id);
+    }
+  }
+
   revalidatePath("/admin");
   revalidatePath("/admin/members");
   revalidatePath(`/admin/members/${v.member_id}`);

@@ -1,0 +1,22 @@
+-- ============================================================================
+-- 0021 · Payment proof, and approving it.
+--
+-- Until now record_payment_and_extend() did three irreversible things at
+-- once: marked a payment paid, extended the membership, and issued a
+-- numbered GST invoice. That is right when reception watched the money
+-- arrive. It is wrong the moment a MEMBER claims to have paid, because then
+-- an uploaded screenshot would buy a month and a tax invoice.
+--
+-- So a payment now has two shapes:
+--
+--   · Taken at the desk        -> paid immediately, as before. Staff were
+--                                 there; recording it IS the verification.
+--   · Claimed by a member      -> awaiting_verification. Nothing extends and
+--                                 no invoice exists until a human approves.
+--
+-- The invoice matters as much as the membership: invoice numbers are
+-- gap-free per gym per financial year, so issuing one for money that never
+-- arrived cannot be cleanly undone.
+-- ============================================================================
+
+alter type payment_status add value if not exists 'awaiting_verification';

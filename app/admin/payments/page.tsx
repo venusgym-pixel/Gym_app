@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
+import { VerifyQueue, type PendingClaim } from "./verify";
 import { formatDate, formatINR, formatINRCompact } from "@/lib/money";
 
 /* ============================================================================
@@ -35,7 +36,8 @@ export default async function PaymentsPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: payments }, { data: invoices }] = await Promise.all([
+  const [{ data: payments }, { data: invoices }, { data: claims }, { data: plans }] =
+    await Promise.all([
     db
       .from("payments")
       .select(
@@ -45,11 +47,60 @@ export default async function PaymentsPage() {
       .order("created_at", { ascending: false })
       .limit(100),
     db.from("invoices").select("id, invoice_no, payment_id").eq("gym_id", actor.gymId),
+    /* Member-submitted claims, newest first. Separate query rather than
+       filtering the list above: the list is capped at 100 rows and a claim
+       must never fall off the end of it unseen. */
+    db
+      .from("payments")
+      .select(
+        "id, amount_paise, method, reference, created_at, proof_path, members(full_name, member_code)",
+      )
+      .eq("gym_id", actor.gymId)
+      .eq("status", "awaiting_verification")
+      .order("created_at", { ascending: false }),
+    db
+      .from("plans")
+      .select("id, name, price_paise")
+      .eq("gym_id", actor.gymId)
+      .order("sort_order"),
   ]);
 
   const rows = (payments ?? []) as unknown as Row[];
   const invByPayment = new Map(
     ((invoices ?? []) as Inv[]).map((i) => [i.payment_id ?? "", i]),
+  );
+
+  const claimRows = (claims ?? []) as unknown as {
+    id: string;
+    amount_paise: string;
+    method: string;
+    reference: string | null;
+    created_at: string;
+    proof_path: string | null;
+    members: { full_name: string; member_code: string } | null;
+  }[];
+
+  const planRows = (plans ?? []) as { id: string; name: string; price_paise: string }[];
+
+  /* Signed on the server, valid five minutes. The bucket is private because
+     a payment screenshot carries a name, an amount and usually a bank — so
+     there is no permanent URL to hand the browser. */
+  const pending_claims: PendingClaim[] = await Promise.all(
+    claimRows.map(async (c) => ({
+      id: c.id,
+      memberName: c.members?.full_name ?? "Unknown",
+      memberCode: c.members?.member_code ?? "",
+      amountPaise: c.amount_paise,
+      method: c.method,
+      reference: c.reference,
+      createdAt: c.created_at,
+      proofUrl: c.proof_path
+        ? (await db.storage.from("payment-proofs").createSignedUrl(c.proof_path, 300))
+            .data?.signedUrl ?? null
+        : null,
+      suggestedPlanId:
+        planRows.find((p) => p.price_paise === c.amount_paise)?.id ?? null,
+    })),
   );
 
   const collected = rows
@@ -66,6 +117,14 @@ export default async function PaymentsPage() {
         title={`${rows.length} ${rows.length === 1 ? "transaction" : "transactions"}`}
         sub="Most recent first."
       />
+
+      {pending_claims.length > 0 && (
+        <div className="mb-5">
+          <Card title={`Waiting to be checked · ${pending_claims.length}`}>
+            <VerifyQueue claims={pending_claims} plans={planRows} />
+          </Card>
+        </div>
+      )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <StatTile value={formatINRCompact(collected)} label="Collected" tone="good" />

@@ -78,6 +78,21 @@ export function CollectPayment({
         </Field>
       </div>
 
+      <Field
+        label="Receipt photo"
+        hint="Optional — the cash receipt, or the confirmation screen on their phone. Kept against this payment."
+      >
+        {/* capture="environment" opens the rear camera straight away on a
+            phone, which is what reception is holding. */}
+        <input
+          type="file"
+          name="receipt"
+          accept="image/*"
+          capture="environment"
+          className="w-full text-[13px]"
+        />
+      </Field>
+
       <Field label="Reference" hint="UPI reference, cheque number — optional">
         <Input name="reference" placeholder="optional" />
       </Field>

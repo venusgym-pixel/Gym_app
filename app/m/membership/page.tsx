@@ -1,3 +1,4 @@
+import { PayFlow } from "./pay";
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { MemberTabBar } from "@/components/member/nav";
@@ -50,7 +51,8 @@ export default async function MembershipPage() {
 
   const m = member as unknown as { id: string; memberships: Term[] } | null;
 
-  const [{ data: plans }, { data: invoices }] = await Promise.all([
+  const [{ data: plans }, { data: invoices }, { data: gymRow }, { data: waiting }] =
+    await Promise.all([
     db
       .from("plans")
       .select("id, name, duration_days, price_paise")
@@ -67,7 +69,36 @@ export default async function MembershipPage() {
           .order("issued_on", { ascending: false })
           .limit(6)
       : Promise.resolve({ data: [] }),
+    db
+      .from("gyms")
+      .select("upi_qr_path, upi_vpa")
+      .eq("id", actor.gymId)
+      .maybeSingle(),
+    /* A claim already in the queue. Without this the member can send a
+       second screenshot while the first is still being checked, and
+       reception ends up approving the same money twice. */
+    m
+      ? db
+          .from("payments")
+          .select("amount_paise, created_at")
+          .eq("gym_id", actor.gymId)
+          .eq("member_id", m.id)
+          .eq("status", "awaiting_verification")
+          .order("created_at", { ascending: false })
+          .limit(1)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const gymPay = gymRow as { upi_qr_path: string | null; upi_vpa: string | null } | null;
+  /* The QR lives in a PUBLIC bucket, unlike payment proofs: it is the same
+     code taped to the counter, and a signed URL would expire while the
+     member is still in their UPI app. */
+  const upiQrUrl = gymPay?.upi_qr_path
+    ? db.storage.from("gym-public").getPublicUrl(gymPay.upi_qr_path).data.publicUrl
+    : null;
+
+  const pendingClaim = ((waiting ?? []) as { amount_paise: string; created_at: string }[])[0]
+    ?? null;
 
   const terms = [...(m?.memberships ?? [])].sort((a, b) =>
     a.expires_on < b.expires_on ? 1 : -1,
@@ -154,14 +185,22 @@ export default async function MembershipPage() {
           })}
         </div>
 
-        <p
-          className="mt-5 rounded-md px-4 py-3 text-[0.822em]"
-          style={{ background: "rgb(246 160 107 / 0.10)", color: "var(--color-app-accent)" }}
-        >
-          Online payment is coming. For now reception can take payment and your
-          membership extends immediately — the unused days on your current term
-          are kept.
-        </p>
+        <div className="mt-8">
+          <h2 className="mb-3 text-[0.724em] tracking-[0.08em] uppercase"
+              style={{ color: "var(--app-ink-50)" }}>
+            Renew
+          </h2>
+          <PayFlow
+            plans={(plans ?? []) as { id: string; name: string; price_paise: string; duration_days: number }[]}
+            upiQrUrl={upiQrUrl}
+            upiVpa={gymPay?.upi_vpa ?? null}
+            pendingClaim={
+              pendingClaim
+                ? { amountPaise: pendingClaim.amount_paise, createdAt: pendingClaim.created_at }
+                : null
+            }
+          />
+        </div>
 
         {(invoices ?? []).length > 0 && (
           <>
