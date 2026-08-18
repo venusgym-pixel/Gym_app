@@ -80,10 +80,10 @@ export default async function MembershipPage() {
     m
       ? db
           .from("payments")
-          .select("amount_paise, created_at")
+          .select("amount_paise, created_at, status, rejected_reason")
           .eq("gym_id", actor.gymId)
           .eq("member_id", m.id)
-          .eq("status", "awaiting_verification")
+          .in("status", ["awaiting_verification", "failed"])
           .order("created_at", { ascending: false })
           .limit(1)
       : Promise.resolve({ data: [] }),
@@ -97,8 +97,12 @@ export default async function MembershipPage() {
     ? db.storage.from("gym-public").getPublicUrl(gymPay.upi_qr_path).data.publicUrl
     : null;
 
-  const pendingClaim = ((waiting ?? []) as { amount_paise: string; created_at: string }[])[0]
-    ?? null;
+  /* The most recent claim, whichever way it went. A REJECTED one has to be
+     shown too: silently dropping it puts the member back at the pay form
+     with no idea why nothing happened, and they find out at the door. */
+  const lastClaim = ((waiting ?? []) as {
+    amount_paise: string; created_at: string; status: string; rejected_reason: string | null;
+  }[])[0] ?? null;
 
   const terms = [...(m?.memberships ?? [])].sort((a, b) =>
     a.expires_on < b.expires_on ? 1 : -1,
@@ -194,9 +198,14 @@ export default async function MembershipPage() {
             plans={(plans ?? []) as { id: string; name: string; price_paise: string; duration_days: number }[]}
             upiQrUrl={upiQrUrl}
             upiVpa={gymPay?.upi_vpa ?? null}
-            pendingClaim={
-              pendingClaim
-                ? { amountPaise: pendingClaim.amount_paise, createdAt: pendingClaim.created_at }
+            lastClaim={
+              lastClaim
+                ? {
+                    amountPaise: lastClaim.amount_paise,
+                    createdAt: lastClaim.created_at,
+                    status: lastClaim.status,
+                    rejectedReason: lastClaim.rejected_reason,
+                  }
                 : null
             }
           />

@@ -29,13 +29,25 @@ export function PayFlow({
   plans,
   upiQrUrl,
   upiVpa,
-  pendingClaim,
+  lastClaim,
 }: {
   plans: Plan[];
   upiQrUrl: string | null;
   upiVpa: string | null;
-  /** A claim already waiting, so we do not invite a second one. */
-  pendingClaim: { amountPaise: string; createdAt: string } | null;
+  /**
+   * The member's most recent claim, whichever way it went.
+   *
+   * Waiting: do not invite a second screenshot, or reception ends up
+   * approving the same money twice. Rejected: say so, with the reason —
+   * dropping it silently puts them back at the pay form wondering why
+   * nothing happened, and they find out at the door.
+   */
+  lastClaim: {
+    amountPaise: string;
+    createdAt: string;
+    status: string;
+    rejectedReason: string | null;
+  } | null;
 }) {
   const [state, action] = useActionState<ActionResult | null, FormData>(
     submitPaymentProof,
@@ -44,15 +56,15 @@ export function PayFlow({
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [fileName, setFileName] = useState<string | null>(null);
 
-  if (pendingClaim) {
+  if (lastClaim?.status === "awaiting_verification") {
     return (
       <div className="rounded-lg px-5 py-4" style={{ background: "var(--color-app-surface)" }}>
         <p className="text-[0.888em] font-semibold text-app-accent">
           Waiting for the gym to check it
         </p>
         <p className="mt-1.5 text-[0.822em]" style={{ color: "var(--app-ink-55)" }}>
-          You sent {formatINR(pendingClaim.amountPaise)} on{" "}
-          {new Date(pendingClaim.createdAt).toLocaleDateString("en-IN")}. Your
+          You sent {formatINR(lastClaim.amountPaise)} on{" "}
+          {new Date(lastClaim.createdAt).toLocaleDateString("en-IN")}. Your
           membership updates as soon as reception confirms it — usually the
           same day. Ask at the desk if it is urgent.
         </p>
@@ -73,8 +85,24 @@ export function PayFlow({
 
   const plan = plans.find((p) => p.id === planId);
 
+  const rejected = lastClaim?.status === "failed" ? lastClaim : null;
+
   return (
     <form action={action} className="space-y-5">
+      {rejected && (
+        <div
+          className="rounded-lg px-4 py-3"
+          style={{ background: "rgb(246 160 107 / 0.12)" }}
+        >
+          <p className="text-[0.855em] font-semibold text-app-accent">
+            That payment was not accepted
+          </p>
+          <p className="mt-1 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
+            {rejected.rejectedReason ?? "The gym could not match it to a payment."}{" "}
+            Send it again below, or ask at the front desk.
+          </p>
+        </div>
+      )}
       {/* 1 · what */}
       <div>
         <Label>What are you paying for?</Label>
