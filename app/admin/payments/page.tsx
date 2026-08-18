@@ -60,7 +60,7 @@ export default async function PaymentsPage() {
       .order("created_at", { ascending: false }),
     db
       .from("plans")
-      .select("id, name, price_paise")
+      .select("id, name, price_paise, duration_days")
       .eq("gym_id", actor.gymId)
       .order("sort_order"),
   ]);
@@ -80,7 +80,9 @@ export default async function PaymentsPage() {
     members: { full_name: string; member_code: string } | null;
   }[];
 
-  const planRows = (plans ?? []) as { id: string; name: string; price_paise: string }[];
+  const planRows = (plans ?? []) as {
+    id: string; name: string; price_paise: string; duration_days: number;
+  }[];
 
   /* Signed on the server, valid five minutes. The bucket is private because
      a payment screenshot carries a name, an amount and usually a bank — so

@@ -7,14 +7,27 @@ import { formatINR } from "@/lib/money";
 /* ============================================================================
    A-18 · Payments waiting to be checked.
 
-   One card per claim, with the screenshot big enough to actually read the
-   amount and the UPI reference — squinting at a thumbnail is how a wrong
-   payment gets approved.
+   Everything on this card except the member is a CLAIM. The amount is not
+   evidence — nobody typed it in, it is the price of the plan the member
+   tapped, and a screenshot showing some other figure is trivially made: apps
+   that fake a GPay success screen are sold openly. The only fact available to
+   reception is what their own bank shows, which is why the UTR is the largest
+   thing here and why Approve is gated behind having looked.
 
-   Approving asks WHICH PLAN it pays for rather than assuming. The member
-   picked a plan when they uploaded, but the amount they actually sent is the
-   only thing that matters, and it is not always what they intended.
+   The plan select is the correction, not a formality: paid the monthly amount
+   against an annual claim, switch it to Monthly and the payment, the invoice
+   and the term all come out at the monthly figure together. Approving with a
+   mismatch left in place would issue a numbered GST invoice for money that
+   never arrived, and invoice numbers are gap-free per financial year — there
+   is no clean way back.
    ========================================================================= */
+
+interface Plan {
+  id: string;
+  name: string;
+  price_paise: string;
+  duration_days: number;
+}
 
 export interface PendingClaim {
   id: string;
@@ -33,7 +46,7 @@ export function VerifyQueue({
   plans,
 }: {
   claims: PendingClaim[];
-  plans: { id: string; name: string; price_paise: string }[];
+  plans: Plan[];
 }) {
   if (claims.length === 0) {
     return (
@@ -52,21 +65,29 @@ export function VerifyQueue({
   );
 }
 
-function ClaimCard({
-  claim,
-  plans,
-}: {
-  claim: PendingClaim;
-  plans: { id: string; name: string; price_paise: string }[];
-}) {
+function ClaimCard({ claim, plans }: { claim: PendingClaim; plans: Plan[] }) {
   const [planId, setPlanId] = useState(claim.suggestedPlanId ?? plans[0]?.id ?? "");
   const [reason, setReason] = useState("");
   const [rejecting, setRejecting] = useState(false);
+  const [checked, setChecked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [zoom, setZoom] = useState(false);
 
-  function run(fn: (f: FormData) => Promise<{ ok: boolean; message?: string; error?: string }>, extra: Record<string, string>) {
+  const plan = plans.find((p) => p.id === planId);
+  const claimedPlan = plans.find((p) => p.id === claim.suggestedPlanId);
+
+  /* The figure that will actually be recorded and invoiced, which follows the
+     select rather than the claim. Showing it live is the whole point: it is
+     what reception is attesting to. */
+  const willRecord = plan?.price_paise ?? claim.amountPaise;
+  const mismatch = plan != null && plan.price_paise !== claim.amountPaise;
+
+  function run(
+    fn: (f: FormData) => Promise<{ ok: boolean; message?: string; error?: string }>,
+    extra: Record<string, string>,
+  ) {
     const form = new FormData();
     form.set("payment_id", claim.id);
     for (const [k, v] of Object.entries(extra)) form.set(k, v);
@@ -81,17 +102,46 @@ function ClaimCard({
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="text-[15px] font-semibold">{claim.memberName}</span>
         <span className="font-mono text-[11.5px] text-neutral-600">{claim.memberCode}</span>
-        <span className="tabular ml-auto text-[17px] font-bold">
-          {formatINR(claim.amountPaise)}
+        <span className="ml-auto text-[12px] text-neutral-600">
+          {new Date(claim.createdAt).toLocaleString("en-IN")}
         </span>
       </div>
 
-      <p className="mt-1 text-[12px] text-neutral-600">
-        {claim.method.toUpperCase()}
-        {claim.reference && ` · ref ${claim.reference}`}
-        {" · "}
-        {new Date(claim.createdAt).toLocaleString("en-IN")}
+      <p className="mt-0.5 text-[12.5px] text-neutral-700">
+        Says they sent{" "}
+        <span className="tabular font-semibold">{formatINR(claim.amountPaise)}</span>
+        {claimedPlan ? ` for ${claimedPlan.name}` : ""} by {claim.method.toUpperCase()}
       </p>
+
+      {/* The one thing on this card that can be checked against a fact. */}
+      <div className="mt-3 rounded-md bg-bg px-3 py-2.5">
+        <p className="text-[11px] tracking-[0.06em] text-neutral-600 uppercase">
+          Find this in the gym&apos;s account
+        </p>
+        {claim.reference ? (
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="tabular font-mono text-[16px] font-semibold break-all">
+              {claim.reference}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard?.writeText(claim.reference ?? "");
+                setCopied(true);
+              }}
+              className="rounded-pill border border-neutral-300 px-3 py-1 text-[11.5px] font-semibold"
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-[13px] text-neutral-700">
+            No reference given — search your bank for {formatINR(claim.amountPaise)}{" "}
+            around {new Date(claim.createdAt).toLocaleString("en-IN")}, or ask
+            the member for the UPI reference.
+          </p>
+        )}
+      </div>
 
       <div className="mt-3 grid gap-4 sm:grid-cols-[220px_1fr]">
         {claim.proofUrl ? (
@@ -119,7 +169,10 @@ function ClaimCard({
             This pays for
             <select
               value={planId}
-              onChange={(e) => setPlanId(e.target.value)}
+              onChange={(e) => {
+                setPlanId(e.target.value);
+                setChecked(false);
+              }}
               className="mt-1 w-full rounded-md border border-neutral-300 bg-bg px-3 py-2 text-[13.5px]"
             >
               {plans.map((p) => (
@@ -130,10 +183,32 @@ function ClaimCard({
             </select>
           </label>
 
+          {mismatch && (
+            <p className="mt-2 rounded-md bg-accent-200 px-3 py-2 text-[12px] text-accent-800">
+              They claimed {formatINR(claim.amountPaise)} but this plan costs{" "}
+              {formatINR(willRecord)}. Record what the bank shows — pick the
+              plan that matches it, or reject and ask for the difference.
+            </p>
+          )}
+
+          <label className="mt-3 flex items-start gap-2 text-[12.5px] text-neutral-800">
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => setChecked(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0"
+            />
+            <span>
+              I found {formatINR(willRecord)}
+              {claim.reference ? ` (ref ${claim.reference})` : ""} in the
+              gym&apos;s account. A screenshot on its own is not payment.
+            </span>
+          </label>
+
           <p className="mt-2 text-[11.5px] text-neutral-600">
-            Check the amount and the reference against your bank before
-            approving. Approving extends the membership and issues a GST
-            invoice, and neither undoes cleanly.
+            Approving records {formatINR(willRecord)}, adds{" "}
+            {plan?.duration_days ?? 0} days to the membership and issues a GST
+            invoice. None of that undoes cleanly.
           </p>
 
           {note && (
@@ -155,6 +230,24 @@ function ClaimCard({
                 placeholder="Why? The member sees this."
                 className="w-full rounded-md border border-neutral-300 bg-bg px-3 py-2 text-[13px]"
               />
+              {/* The member reads this, so a vague reason means a queue at the
+                  desk. These are the three that actually come up. */}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "We could not find this payment in our account.",
+                  "The amount does not match the plan.",
+                  "This reference has already been used.",
+                ].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setReason(r)}
+                    className="rounded-pill border border-neutral-300 px-3 py-1 text-[11.5px]"
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -177,8 +270,9 @@ function ClaimCard({
             <div className="mt-3 flex gap-2">
               <button
                 type="button"
-                disabled={pending || !planId}
+                disabled={pending || !planId || !checked}
                 onClick={() => run(approvePayment, { plan_id: planId })}
+                title={checked ? undefined : "Check the gym's account first"}
                 className="rounded-pill bg-neutral-900 px-5 py-2 text-[12.5px] font-semibold text-neutral-100 disabled:opacity-40"
               >
                 {pending ? "Working…" : "Approve"}
