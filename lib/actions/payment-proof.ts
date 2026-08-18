@@ -189,19 +189,3 @@ export async function rejectPayment(form: FormData): Promise<ActionResult> {
   revalidatePath("/admin/payments");
   return { ok: true, message: "Rejected." };
 }
-
-/**
- * A short-lived link to a proof image.
- *
- * The bucket is private, so there is no permanent URL to store — and that is
- * deliberate: a payment screenshot carries a member's name, the amount and
- * usually their bank.
- */
-export async function proofUrl(path: string): Promise<string | null> {
-  const actor = await requireActor();
-  if (!can(actor.role as GymRole, "payments", "view")) return null;
-
-  const db = await createServerDb();
-  const { data } = await db.storage.from("payment-proofs").createSignedUrl(path, 300);
-  return data?.signedUrl ?? null;
-}
