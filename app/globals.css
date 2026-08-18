@@ -251,3 +251,45 @@
     outline-offset: 2px;
   }
 }
+
+/* ============================================================================
+   Tab pending hint.
+
+   The dot under a member tab does double duty: solid when that tab is the
+   current page, and — via useLinkStatus — a pulse on the tab you just tapped
+   while the route is still on its way. Next skips the pending state entirely
+   for routes it already prefetched, so this only ever appears when the
+   prefetch has not landed: a cold start, or a bad connection.
+
+   The 100ms delay is the point. A fast navigation finishes inside it and the
+   hint never appears, so tapping between warm tabs stays clean instead of
+   flashing a spinner at every touch. Size and space are reserved whether or
+   not it shows, so nothing shifts.
+   ========================================================================= */
+@layer components {
+  .tab-dot {
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+
+  .tab-dot[data-on="true"] {
+    opacity: 1;
+  }
+
+  .tab-dot[data-pending="true"] {
+    animation-name: tab-dot-in, tab-dot-pulse;
+    animation-duration: 200ms, 1s;
+    animation-delay: 100ms, 100ms;
+    animation-timing-function: ease, ease-in-out;
+    animation-iteration-count: 1, infinite;
+    animation-fill-mode: forwards, none;
+  }
+
+  @keyframes tab-dot-in {
+    to { opacity: 1; }
+  }
+
+  @keyframes tab-dot-pulse {
+    50% { opacity: 0.3; }
+  }
+}

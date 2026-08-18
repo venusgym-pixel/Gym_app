@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 
 /* ============================================================================
@@ -87,17 +88,34 @@ function Tab({ href, label, current }: { href: string; label: string; current: s
         color: on ? "var(--color-app-accent)" : "var(--app-ink-45)",
       }}
     >
-      {/* A dot rather than an icon set: it marks the active tab at a glance
-          without pretending to five icons that would each need drawing. */}
-      <span
-        aria-hidden
-        className="h-[0.35em] w-[0.35em] rounded-pill transition-opacity"
-        style={{
-          background: "var(--color-app-accent)",
-          opacity: on ? 1 : 0,
-        }}
-      />
+      <TabDot on={on} />
       {label}
     </Link>
+  );
+}
+
+/* A dot rather than an icon set: it marks the active tab at a glance without
+   pretending to five icons that would each need drawing.
+
+   It also answers the tap. useLinkStatus reports the pending phase — after the
+   press, before the URL changes — and Next skips that phase entirely for a
+   route it has already prefetched. So on a warm tab this stays invisible and
+   the dot simply moves; on a cold one it pulses, and the tap is never silent.
+
+   Must be a child of the Link to see its status, which is why it is a separate
+   component rather than markup inside Tab.
+
+   The 100ms animation delay lives in globals.css, so a navigation that beats
+   it shows nothing at all. */
+function TabDot({ on }: { on: boolean }) {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      data-on={on}
+      data-pending={pending && !on}
+      className="tab-dot h-[0.35em] w-[0.35em] rounded-pill"
+      style={{ background: "var(--color-app-accent)" }}
+    />
   );
 }
