@@ -24,6 +24,20 @@ const nextConfig: NextConfig = {
        OpenNext adapter drives it, which is why plain `next build` looks
        fine. Two workers costs a few seconds and builds reliably. */
     cpus: 2,
+
+    /*
+      Server Action bodies default to 1MB, and every image in this product
+      goes through one: the gym's UPI QR, a member's payment screenshot, a
+      receipt photographed at the desk. A screenshot off a modern phone is
+      routinely 2-4MB, so the default rejected the common case — and it does
+      so in the framework, before the action runs, so our own "that image is
+      over 5MB" never appeared and the screen just said it could not upload.
+
+      6MB, not more: the app rejects anything over 5MB itself, with a message
+      that says what to do about it. This sits just above that so the framework
+      is the backstop and the app is what people actually hear from.
+    */
+    serverActions: { bodySizeLimit: "6mb" },
   },
 
   /*

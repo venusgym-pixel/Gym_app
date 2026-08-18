@@ -47,25 +47,55 @@ export async function saveUpiDetails(
 
   const patch: Record<string, unknown> = { upi_vpa: vpa || null };
 
+  /* Read the current path before overwriting it, so the old image can be
+     cleared up once the new one is safely in place. */
+  const { data: current } = await db
+    .from("gyms")
+    .select("upi_qr_path")
+    .eq("id", actor.gymId)
+    .maybeSingle();
+  const previous = (current as { upi_qr_path: string | null } | null)?.upi_qr_path ?? null;
+
   if (file && file.size > 0) {
     const bad = checkImage(file);
     if (bad) return { ok: false, error: bad };
 
     /* Gym id first in the path: that segment is what the storage policy
-       matches on, so it is the tenant boundary rather than decoration. */
+       matches on, so it is the tenant boundary rather than decoration.
+
+       A fresh name every time, rather than one fixed upi-qr.png. Replacing an
+       object in place needs UPDATE on storage.objects, and that was refused —
+       so the first save worked and every save after it failed, which is a
+       miserable thing to debug from a screen that only says it could not
+       upload. Writing a new object only ever needs INSERT.
+
+       It also sidesteps a stale QR: the bucket is public and CDN-cached, and
+       a payment code that silently serves the previous gym's image is worse
+       than a few stray files. */
     const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-    const path = `${actor.gymId}/upi-qr.${ext}`;
+    const path = `${actor.gymId}/upi-qr-${Date.now()}.${ext}`;
 
     const { error } = await db.storage
       .from("gym-public")
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, file, { contentType: file.type });
 
-    if (error) return { ok: false, error: "Could not upload the QR image." };
+    /* Say what actually went wrong. Owners are the only people who reach this
+       screen, and "could not upload" gives them nothing to act on. */
+    if (error) {
+      return { ok: false, error: `Could not upload the QR image — ${error.message}` };
+    }
     patch.upi_qr_path = path;
   }
 
   const { error } = await db.from("gyms").update(patch).eq("id", actor.gymId);
   if (error) return { ok: false, error: "Could not save." };
+
+  /* Best effort, and deliberately after the row is updated: an orphaned image
+     nobody points at is harmless, whereas deleting first would break the QR
+     members see if the update then failed. */
+  if (patch.upi_qr_path && previous && previous !== patch.upi_qr_path) {
+    await db.storage.from("gym-public").remove([previous]);
+  }
 
   revalidatePath("/admin/settings");
   revalidatePath("/m/membership");
