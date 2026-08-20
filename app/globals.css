@@ -293,3 +293,42 @@
     50% { opacity: 0.3; }
   }
 }
+
+/* ============================================================================
+   Printing.
+
+   Only one screen in this product is meant for paper — the check-in wall
+   poster — and what it must produce is a code and one instruction, with no
+   sidebar, no header and no browser furniture around them. The page marks its
+   own controls print:hidden; this handles the admin shell wrapped around it,
+   which the page itself does not render and cannot reach.
+   ========================================================================= */
+@media print {
+  /* Keep only the content well. AdminNav renders a phone bar and a desktop
+     sidebar as siblings of <main>, with no shared wrapper to target, so this
+     hides everything in the shell that is not main rather than naming them. */
+  [data-admin-shell] {
+    display: block !important;
+  }
+
+  [data-admin-shell] > *:not(main) {
+    display: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+
+  /* Nothing may clip the sheet or push it onto a second page. */
+  * {
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+}

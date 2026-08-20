@@ -64,10 +64,19 @@ export function Scanner() {
       const data = (await res.json()) as CheckinResponse & { reason?: string };
 
       if (!res.ok && !["expired", "frozen", "none"].includes(data.outcome)) {
+        /* Why it was refused decides what the member should do next, and the
+           three cases need genuinely different advice — wait and rescan, go
+           find the new sheet, or you are in the wrong place. */
+        const refusals: Record<string, string> = {
+          expired:
+            "That code has expired. The screen at reception refreshes every 30 seconds — try again.",
+          reprinted:
+            "That poster has been replaced. Scan the new one on the wall, or ask at the desk.",
+          "wrong-gym": "That code belongs to a different gym.",
+        };
         setError(
-          data.outcome === "invalid-code"
-            ? "That code has expired. The screen at reception refreshes every 30 seconds — try again."
-            : "Could not check you in. Ask reception.",
+          (data.outcome === "invalid-code" ? refusals[data.reason ?? ""] : undefined) ??
+            "Could not check you in. Ask reception.",
         );
         submitted.current = false;
       } else {

@@ -19,7 +19,7 @@ import {
   rupeesToPaise,
 } from "../lib/money";
 import {
-  makeKioskToken, offlineCheckinIsFresh, QR_WINDOW_SECONDS, verifyKioskToken,
+  makeKioskToken, makePosterToken, offlineCheckinIsFresh, QR_WINDOW_SECONDS, verifyKioskToken,
 } from "../lib/qr";
 
 const GYM = "11111111-1111-4111-8111-111111111111";
@@ -92,7 +92,10 @@ describe("kiosk QR tokens", () => {
   it("round-trips a fresh token", async () => {
     const token = await makeKioskToken(SECRET, GYM, KIOSK, now);
     const v = await verifyKioskToken(token, secretFor, { now, expectedGymId: GYM });
-    expect(v).toEqual({ ok: true, gymId: GYM, kioskId: KIOSK });
+    /* mode is asserted here rather than loosened away: a screen token must
+       never come back reported as a poster, since that is what decides how
+       much the resulting attendance row can be trusted. */
+    expect(v).toEqual({ ok: true, gymId: GYM, kioskId: KIOSK, mode: "screen" });
   });
 
   it("rotates: the same kiosk emits a different token each window", async () => {
@@ -201,6 +204,15 @@ describe("QR codes decode", () => {
     return jsQR(data, dim, dim)?.data ?? null;
   }
 
+  it("reads back a printed poster token", async () => {
+    /* The one that matters most for scanning: this ends up on a wall and gets
+       read from a metre away by whatever phone the member owns, so if the
+       encoder produces a denser grid for this payload than for a kiosk token,
+       it fails in the field and nowhere else. */
+    const token = await makePosterToken(SECRET, GYM, KIOSK, "n7f3a91cd0e2");
+    expect(roundTrip(token)).toBe(token);
+  });
+
   it("reads back a member claim URL", () => {
     const url = "https://fitwell.venusgym280.workers.dev/join/8Y6P5H";
     expect(roundTrip(url)).toBe(url);
@@ -215,5 +227,58 @@ describe("QR codes decode", () => {
   it("reads back something tiny", () => {
     // The old encoder failed even on this, which is what gave it away.
     expect(roundTrip("HELLO")).toBe("HELLO");
+  });
+});
+
+describe("printed poster codes", () => {
+  const NONCE = "n7f3a91c";
+  const device = async () => ({ secret: SECRET, posterNonce: NONCE });
+
+  it("verifies and reports that it was a poster, not a screen", async () => {
+    const t = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    const v = await verifyKioskToken(t, device, { expectedGymId: GYM });
+    expect(v).toMatchObject({ ok: true, mode: "poster" });
+  });
+
+  it("does not expire, which is the whole point and the whole risk", async () => {
+    const t = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    const aYearOn = Date.now() + 365 * 24 * 60 * 60 * 1000;
+    expect((await verifyKioskToken(t, device, { now: aYearOn })).ok).toBe(true);
+  });
+
+  it("dies the moment a new sheet is printed", async () => {
+    const old = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    const reprinted = async () => ({ secret: SECRET, posterNonce: "n0000new" });
+    const v = await verifyKioskToken(old, reprinted);
+    expect(v).toMatchObject({ ok: false, reason: "reprinted" });
+  });
+
+  it("cannot be forged from a screen code, or the reverse", async () => {
+    /* Both formats sign the same shape of string. Without the "poster" domain
+       separator a digest lifted from one would validate as the other. */
+    const screen = await makeKioskToken(SECRET, GYM, KIOSK, Date.now());
+    const swapped = screen.replace(/^fw1\./, "fwp1.");
+    expect((await verifyKioskToken(swapped, device)).ok).toBe(false);
+
+    const poster = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    expect((await verifyKioskToken(poster.replace(/^fwp1\./, "fw1."), device)).ok).toBe(false);
+  });
+
+  it("is rejected for another gym", async () => {
+    const t = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    const v = await verifyKioskToken(t, device, { expectedGymId: crypto.randomUUID() });
+    expect(v).toMatchObject({ ok: false, reason: "wrong-gym" });
+  });
+
+  it("is rejected when the device has no poster at all", async () => {
+    const t = await makePosterToken(SECRET, GYM, KIOSK, NONCE);
+    const screenOnly = async () => ({ secret: SECRET, posterNonce: null });
+    expect((await verifyKioskToken(t, screenOnly)).ok).toBe(false);
+  });
+
+  it("still lets a screen code through unchanged", async () => {
+    const now = Date.now();
+    const t = await makeKioskToken(SECRET, GYM, KIOSK, now);
+    expect(await verifyKioskToken(t, device, { now })).toMatchObject({ ok: true, mode: "screen" });
   });
 });

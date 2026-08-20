@@ -29,7 +29,10 @@ export function AdminShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+    /* data-admin-shell is a print hook. AdminNav returns a fragment — a
+       phone bar and a desktop sidebar — so there is no single element to
+       hide; the print rules in globals.css instead keep only <main>. */
+    <div data-admin-shell className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
       <AdminNav role={role} gymName={gymName} email={email} />
       <main className="min-w-0 px-5 py-6 md:px-9 md:py-7">{children}</main>
     </div>

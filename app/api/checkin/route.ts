@@ -54,12 +54,13 @@ export async function POST(request: NextRequest) {
         if (tokenGymId !== gymId) return null;
         const { data } = await db
           .from("kiosk_devices")
-          .select("secret")
+          .select("secret, poster_nonce")
           .eq("gym_id", gymId)
           .eq("id", kioskId)
           .eq("is_active", true)
           .maybeSingle();
-        return (data as { secret: string } | null)?.secret ?? null;
+        const row = data as { secret: string; poster_nonce: string | null } | null;
+        return row ? { secret: row.secret, posterNonce: row.poster_nonce } : null;
       },
       { expectedGymId: gymId },
     ),
@@ -88,7 +89,10 @@ export async function POST(request: NextRequest) {
   const { data, error } = await db.rpc("record_checkin", {
     p_gym_id: actor.gymId,
     p_member_id: (member as { id: string }).id,
-    p_method: "qr",
+    /* Which code was scanned, not just that one was. A poster is static and
+       could have been photographed; the screen rotates every 30 seconds and
+       could not. Reporting has to be able to separate them. */
+    p_method: verdict.mode === "poster" ? "poster" : "qr",
     p_idempotency_key: idempotencyKey ?? null,
   });
 
