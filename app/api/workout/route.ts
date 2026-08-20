@@ -18,6 +18,11 @@ import { createServerDb, currentActor } from "@/lib/db/server";
 export const dynamic = "force-dynamic";
 
 const Body = z.discriminatedUnion("action", [
+  /* What the split offers next. Read-only, and fetched by the check-in screen
+     AFTER it has already rendered — checking in is the most time-critical
+     thing in the product, and nobody should wait on a workout lookup to be
+     told the door is open. */
+  z.object({ action: z.literal("next") }),
   z.object({ action: z.literal("start"), dayId: z.uuid() }),
   z.object({
     action: z.literal("log"),
@@ -59,6 +64,22 @@ export async function POST(request: NextRequest) {
 
   if (!member) return NextResponse.json({ error: "not-a-member" }, { status: 403 });
   const memberId = (member as { id: string }).id;
+
+  if (body.action === "next") {
+    const { data, error } = await db.rpc("todays_workout", {
+      p_gym_id: actor.gymId,
+      p_member_id: memberId,
+    });
+    if (error) return NextResponse.json({ error: "could-not-load" }, { status: 500 });
+    const t = (data ?? {}) as Record<string, unknown>;
+    return NextResponse.json({
+      assigned: t.assigned === true,
+      dayName: t.day_name ?? null,
+      planName: t.plan_name ?? null,
+      exercises: Array.isArray(t.exercises) ? t.exercises.length : 0,
+      openSessionId: t.open_session_id ?? null,
+    });
+  }
 
   if (body.action === "start") {
     const { data, error } = await db.rpc("start_workout_session", {

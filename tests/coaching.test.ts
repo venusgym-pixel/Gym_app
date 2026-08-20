@@ -390,3 +390,92 @@ describe("measurements", () => {
     expect(rows).toHaveLength(1);
   });
 });
+
+describe("training a different day than the one offered", () => {
+  /** Finish a named day, whichever one it is. */
+  async function complete(dayId: string) {
+    const [s] = await db.sql<{ start_workout_session: string }>(
+      `select start_workout_session($1, $2, $3)`, [gym.gymId, gym.memberId, dayId]);
+    await db.sql(`select finish_workout_session($1, $2)`,
+                 [gym.gymId, s.start_workout_session]);
+  }
+
+  async function dayByIndex(i: number) {
+    const [d] = await db.sql<{ id: string; name: string }>(
+      `select id, name from workout_days where plan_id = $1 and day_index = $2`, [planId, i]);
+    return d;
+  }
+
+  it("offers every day in the plan to choose from", async () => {
+    await assignPlan();
+    const t = await today();
+    const days = (t as unknown as { days: { name: string; exercises: number }[] }).days;
+    expect(days).toHaveLength(3);
+    expect(days.map((d) => d.name).join(" ")).toContain("Push");
+    // Each day carries its own count, so the picker needs no second query.
+    expect(days.every((d) => d.exercises === 5)).toBe(true);
+  });
+
+  it("continues from what was actually done, not from how many were done", async () => {
+    await assignPlan();
+
+    /* Offered Push (day 1); the member does Legs (day 3) instead. Counting
+       sessions would offer Pull next and silently skip Push forever. */
+    const legs = await dayByIndex(3);
+    await complete(legs.id);
+
+    const next = await today();
+    expect(next.day_index).toBe(1);
+    expect(next.day_name).toContain("Push");
+  });
+
+  it("wraps around the end of the split", async () => {
+    await assignPlan();
+    await complete((await dayByIndex(2)).id);
+    expect((await today()).day_index).toBe(3);
+    await complete((await dayByIndex(3)).id);
+    expect((await today()).day_index).toBe(1);
+  });
+
+  it("still walks the split in order when nothing is swapped", async () => {
+    await assignPlan();
+    for (const expected of [2, 3, 1]) {
+      const t = await today();
+      await complete(t.day_id!);
+      expect((await today()).day_index).toBe(expected);
+    }
+  });
+
+  it("hands back one chosen day's exercises", async () => {
+    await assignPlan();
+    const legs = await dayByIndex(3);
+    const [r] = await db.sql<{ workout_day_detail: Record<string, unknown> }>(
+      `select workout_day_detail($1, $2, $3)`, [gym.gymId, gym.memberId, legs.id]);
+    const d = r.workout_day_detail as { day_name: string; exercises: unknown[] };
+    expect(d.day_name).toBe(legs.name);
+    expect(d.exercises).toHaveLength(5);
+  });
+
+  it("refuses a day from a plan the member is not on", async () => {
+    /* The day id arrives in a URL, so this is the only thing stopping a
+       member reading another plan's programming by guessing one. */
+    const legs = await dayByIndex(3);
+    // No assignment made at all.
+    const [r] = await db.sql<{ workout_day_detail: Record<string, unknown> | null }>(
+      `select workout_day_detail($1, $2, $3)`, [gym.gymId, gym.memberId, legs.id]);
+    expect(r.workout_day_detail).toBeNull();
+  });
+
+  it("refuses a day belonging to another gym", async () => {
+    await assignPlan();
+    const other = await seedGym(db, "rival3");
+    const [op] = await db.sql<{ seed_starter_plan: string }>(
+      `select seed_starter_plan($1, $2)`, [other.gymId, other.staff.trainer]);
+    const [d] = await db.sql<{ id: string }>(
+      `select id from workout_days where plan_id = $1 and day_index = 1`, [op.seed_starter_plan]);
+
+    const [r] = await db.sql<{ workout_day_detail: Record<string, unknown> | null }>(
+      `select workout_day_detail($1, $2, $3)`, [gym.gymId, gym.memberId, d.id]);
+    expect(r.workout_day_detail).toBeNull();
+  });
+});

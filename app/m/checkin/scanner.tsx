@@ -414,6 +414,8 @@ function Outcome({ result }: { result: CheckinResponse }) {
           </div>
         )}
 
+        {good && <NextUp />}
+
         {!good && (
           <Link
             href="/m/membership"
@@ -460,3 +462,57 @@ function Panel({ value, label, accent }: { value: number; label: string; accent?
    screen never rendered. app/m/layout.tsx renders the real one now, and
    <Screen tabBar> already reserves its exact height, so a second spacer would
    just leave a gap. */
+
+
+/* ── what to train, right after getting in ────────────────────────────────
+
+   The point of checking in is to train, so the screen that confirms it should
+   hand over to the workout rather than dead-ending at "Back to home".
+
+   Fetched after this screen is already on display, deliberately. Checking in
+   is the most time-critical action in the product — someone is standing at a
+   door — and it must never wait on a workout lookup. So the tick appears
+   immediately and this fills in underneath a moment later, or silently does
+   not if they have no plan.
+*/
+function NextUp() {
+  const [next, setNext] = useState<{
+    assigned: boolean;
+    dayName: string | null;
+    exercises: number;
+    openSessionId: string | null;
+  } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/workout", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "next" }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (alive && d?.assigned) setNext(d); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  if (!next) return null;
+
+  const resuming = next.openSessionId !== null;
+
+  return (
+    <div className="mt-6 w-full">
+      <Link
+        href="/m/workout"
+        className="block w-full rounded-pill bg-app-accent py-4 text-center text-[1.053em] font-bold text-app-accent-ink"
+      >
+        {resuming ? "Resume workout" : `Start ${next.dayName}`}
+      </Link>
+      {!resuming && (
+        <p className="mt-2 text-center text-[0.757em]" style={{ color: "var(--app-ink-45)" }}>
+          {next.exercises} exercise{next.exercises === 1 ? "" : "s"} · change it on the next screen
+        </p>
+      )}
+    </div>
+  );
+}

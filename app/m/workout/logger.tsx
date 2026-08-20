@@ -27,6 +27,13 @@ interface Exercise {
   last: { reps: number; weight_kg: string } | null;
 }
 
+interface DayOption {
+  day_id: string;
+  day_index: number;
+  name: string;
+  exercises: number;
+}
+
 interface Today {
   assigned: boolean;
   plan_name?: string;
@@ -36,6 +43,10 @@ interface Today {
   day_count?: number;
   open_session_id?: string | null;
   exercises?: Exercise[];
+  /** Every day in the plan, so a member can do a different one. */
+  days?: DayOption[];
+  /** True when this is a day they picked, not the one the split offered. */
+  swapped?: boolean;
 }
 
 interface SetRow {
@@ -304,10 +315,12 @@ export function WorkoutLogger({ today }: { today: Today }) {
           ))}
         </ul>
 
+        <DayPicker today={today} />
+
         {error && <Err>{error}</Err>}
 
         <Cta pinned onClick={begin} loading={busy}>
-          Start workout
+          Start {today.day_name}
         </Cta>
       </Screen>
     );
@@ -568,5 +581,68 @@ function Err({ children }: { children: React.ReactNode }) {
        style={{ background: "rgb(246 160 107 / 0.12)", color: "var(--color-app-accent)" }}>
       {children}
     </p>
+  );
+}
+
+
+/* ── choosing a different day ─────────────────────────────────────────────
+
+   Collapsed by default. The offered day is right most of the time, and a list
+   of five options above the start button turns a two-second decision into a
+   menu.
+
+   Nothing here is a "skip". The split rotates from the day you last FINISHED,
+   so picking Legs today simply means Push is offered next — the programme
+   swaps rather than losing a day, which is the difference between a member
+   adapting around a busy Tuesday and a member quietly falling off a plan.
+*/
+function DayPicker({ today }: { today: Today }) {
+  const [open, setOpen] = useState(false);
+  const days = today.days ?? [];
+
+  // Nothing to choose between on a one-day plan.
+  if (days.length < 2) return null;
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="mt-5 w-full rounded-lg px-4 py-3 text-[0.855em] font-semibold"
+        style={{ background: "var(--color-app-surface)", color: "var(--color-app-accent)" }}
+      >
+        {today.swapped ? "Choose another day" : "Doing something else today?"}
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-5 rounded-lg p-1.5" style={{ background: "var(--color-app-surface)" }}>
+      <p className="px-3 pt-2 pb-1 text-[0.757em]" style={{ color: "var(--app-ink-55)" }}>
+        Pick what you are training. The rest of your split follows on from it.
+      </p>
+      {days.map((d) => {
+        const current = d.day_id === today.day_id;
+        return (
+          <Link
+            key={d.day_id}
+            href={`/m/workout?day=${d.day_id}`}
+            scroll={false}
+            className="flex items-center gap-3 rounded-md px-3 py-3"
+            style={{ background: current ? "var(--color-app-bg)" : undefined }}
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block text-[0.888em] font-semibold">{d.name}</span>
+              <span className="block text-[0.757em]" style={{ color: "var(--app-ink-55)" }}>
+                {d.exercises} exercise{d.exercises === 1 ? "" : "s"}
+              </span>
+            </span>
+            {current && (
+              <span className="text-[0.724em] font-semibold text-app-accent">Selected</span>
+            )}
+          </Link>
+        );
+      })}
+    </div>
   );
 }
