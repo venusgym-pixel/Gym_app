@@ -1,27 +1,22 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
-import { Card, EmptyState, PageHeader } from "@/components/admin/shell";
-import { formatINR, gstSplit } from "@/lib/money";
+import { PageHeader } from "@/components/admin/shell";
+import { PlansManager, type PlanWithCounts } from "./client";
 
 /* ============================================================================
-   A-13 · Membership plans.
+   A-13 / A-14 · Membership plans.
 
-   Read-only for now, deliberately. Existing memberships store their own
-   price_paise, so editing a plan is not retroactive — which is correct, but
-   it means "change the price" is a decision with consequences (does the
-   renewal quote change mid-conversation?) that deserves its own screen rather
-   than an inline field someone edits by accident.
+   These used to be read-only, on the reasoning that changing a price is a
+   decision with consequences and deserved its own screen. It never got one,
+   which left plans creatable only by the bootstrap script — so a gym could not
+   raise a price, add a plan, or open a second branch without a developer.
+
+   The consequence that reasoning was protecting against is real, and is now
+   handled where it belongs: memberships store their own price, so an edit is
+   never retroactive, and the editor says so in front of anyone changing a
+   price on a plan people are currently on.
    ========================================================================= */
 
 export const dynamic = "force-dynamic";
-
-interface Plan {
-  id: string;
-  name: string;
-  duration_days: number;
-  price_paise: string;
-  freeze_days_allowed: number;
-  is_visible_to_members: boolean;
-}
 
 export default async function PlansPage() {
   const actor = await requireActor();
@@ -32,12 +27,25 @@ export default async function PlansPage() {
     db.from("memberships").select("plan_id, status").eq("gym_id", actor.gymId),
   ]);
 
+  /* Two different numbers, for two different decisions. `live` is who is on a
+     plan right now, which is what makes a price change worth warning about.
+     `sold` counts every membership ever written against it, including expired
+     ones — that is what makes deletion impossible, because their invoices
+     still point here. */
   const live = new Map<string, number>();
+  const sold = new Map<string, number>();
   for (const r of (counts ?? []) as { plan_id: string; status: string }[]) {
+    sold.set(r.plan_id, (sold.get(r.plan_id) ?? 0) + 1);
     if (r.status === "active" || r.status === "expiring") {
       live.set(r.plan_id, (live.get(r.plan_id) ?? 0) + 1);
     }
   }
+
+  const rows: PlanWithCounts[] = ((plans ?? []) as PlanWithCounts[]).map((p) => ({
+    ...p,
+    liveCount: live.get(p.id) ?? 0,
+    soldCount: sold.get(p.id) ?? 0,
+  }));
 
   return (
     <>
@@ -46,58 +54,7 @@ export default async function PlansPage() {
         title="Plans"
         sub="Prices exclude GST; 18% is added at checkout."
       />
-
-      {(plans ?? []).length === 0 ? (
-        <Card>
-          <EmptyState>No plans yet.</EmptyState>
-        </Card>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-3">
-          {((plans ?? []) as Plan[]).map((p) => {
-            const split = gstSplit(Number(p.price_paise));
-            const perMonth = Math.round(
-              Number(p.price_paise) / (p.duration_days / 30),
-            );
-            return (
-              <Card key={p.id}>
-                <div className="flex items-baseline justify-between">
-                  <h3 className="text-[20px]">{p.name}</h3>
-                  <span className="tabular text-[20px] font-bold text-accent-700">
-                    {formatINR(p.price_paise)}
-                  </span>
-                </div>
-
-                <dl className="mt-3 space-y-1 text-[12.5px] text-neutral-700">
-                  <Line label="Duration" value={`${p.duration_days} days`} />
-                  <Line label="With GST" value={formatINR(split.totalPaise)} />
-                  <Line label="Effective / month" value={formatINR(perMonth)} />
-                  <Line label="Freeze allowance" value={`${p.freeze_days_allowed} days`} />
-                  <Line
-                    label="On this plan now"
-                    value={String(live.get(p.id) ?? 0)}
-                    strong
-                  />
-                </dl>
-
-                {!p.is_visible_to_members && (
-                  <p className="mt-3 rounded-sm bg-neutral-200 px-2 py-1 text-[11px] text-neutral-700">
-                    Hidden from the member app — staff can still assign it.
-                  </p>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
+      <PlansManager plans={rows} />
     </>
-  );
-}
-
-function Line({ label, value, strong }: { label: string; value: string; strong?: boolean }) {
-  return (
-    <div className="flex justify-between">
-      <dt>{label}</dt>
-      <dd className={`tabular ${strong ? "font-semibold text-ink" : ""}`}>{value}</dd>
-    </div>
   );
 }
