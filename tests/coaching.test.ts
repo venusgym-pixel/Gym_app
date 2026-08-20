@@ -479,3 +479,56 @@ describe("training a different day than the one offered", () => {
     expect(r.workout_day_detail).toBeNull();
   });
 });
+
+describe("a split longer than a week", () => {
+  it("accepts a 12-day cycle and rotates through all of it", async () => {
+    /* day_index was checked between 1 and 7, which refused anything a trainer
+       writes for a serious lifter. The rotation was never weekly — it advances
+       per completed session — so seven was an arbitrary ceiling. */
+    const [p] = await db.sql<{ id: string }>(
+      `insert into workout_plans (gym_id, name, goal, days_per_week, created_by)
+       values ($1, 'Long block', 'Strength', 12, $2) returning id`,
+      [gym.gymId, gym.staff.trainer]);
+
+    for (let i = 1; i <= 12; i++) {
+      await db.sql(
+        `insert into workout_days (gym_id, plan_id, day_index, name)
+         values ($1, $2, $3, $4)`,
+        [gym.gymId, p.id, i, `Day ${i}`]);
+    }
+
+    await db.sql(
+      `insert into workout_assignments (gym_id, member_id, plan_id, assigned_by)
+       values ($1, $2, $3, $4)`,
+      [gym.gymId, gym.memberId, p.id, gym.staff.trainer]);
+
+    const t = await today();
+    expect(t.day_count).toBe(12);
+    expect(t.day_index).toBe(1);
+    expect((t as unknown as { days: unknown[] }).days).toHaveLength(12);
+
+    // Walk to the end and confirm it wraps to 1 rather than stopping at 7.
+    for (let i = 1; i <= 12; i++) {
+      const cur = await today();
+      expect(cur.day_index).toBe(i);
+      const [s] = await db.sql<{ start_workout_session: string }>(
+        `select start_workout_session($1, $2, $3)`,
+        [gym.gymId, gym.memberId, cur.day_id]);
+      await db.sql(`select finish_workout_session($1, $2)`,
+                   [gym.gymId, s.start_workout_session]);
+    }
+    expect((await today()).day_index).toBe(1);
+  });
+
+  it("still refuses a cycle longer than 30 days", async () => {
+    const [p] = await db.sql<{ id: string }>(
+      `insert into workout_plans (gym_id, name, days_per_week, created_by)
+       values ($1, 'Too long', 30, $2) returning id`,
+      [gym.gymId, gym.staff.trainer]);
+
+    await expect(
+      db.sql(`insert into workout_days (gym_id, plan_id, day_index, name)
+              values ($1, $2, 31, 'Day 31')`, [gym.gymId, p.id]),
+    ).rejects.toThrow(/day_index/i);
+  });
+});

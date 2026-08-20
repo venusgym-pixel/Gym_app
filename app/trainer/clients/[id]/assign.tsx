@@ -35,7 +35,7 @@ export function AssignPlan({
         <Select name="plan_id" defaultValue={currentPlanId ?? plans[0].id} required>
           {plans.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} · {p.days_per_week} days/week
+              {p.name} · {p.days_per_week}-day cycle
             </option>
           ))}
         </Select>

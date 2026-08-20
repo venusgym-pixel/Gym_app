@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Cta, Screen } from "@/components/ui/primitives";
+import { WarmUp } from "./warmup";
 
 /* ============================================================================
    M-12 / M-13 / M-14 / M-16 · Preview, log, rest, done.
@@ -73,7 +74,10 @@ function opener(ex: Exercise): number {
 export function WorkoutLogger({ today }: { today: Today }) {
   const exercises = today.exercises ?? [];
 
-  const [phase, setPhase] = useState<"preview" | "logging" | "done">(
+  /* Resuming skips the warm-up: an open session means they already started,
+     and being sent back to "5 minutes easy cardio" after the app reloaded
+     mid-set would be absurd. */
+  const [phase, setPhase] = useState<"preview" | "warmup" | "logging" | "done">(
     today.open_session_id ? "logging" : "preview",
   );
   const [sessionId, setSessionId] = useState<string | null>(today.open_session_id ?? null);
@@ -146,7 +150,10 @@ export function WorkoutLogger({ today }: { today: Today }) {
     try {
       const { sessionId: id } = await call({ action: "start", dayId: today.day_id });
       setSessionId(id);
-      setPhase("logging");
+      /* The session starts here, not after the warm-up, so time spent warming
+         up counts as time in the gym and a member who closes the app mid
+         warm-up can resume rather than losing the session. */
+      setPhase("warmup");
     } catch {
       setError("Could not start. Check your connection and try again.");
     } finally { setBusy(false); }
@@ -276,6 +283,21 @@ export function WorkoutLogger({ today }: { today: Today }) {
           Done
         </Link>
       </Screen>
+    );
+  }
+
+  /* ── M-12a warm-up ────────────────────────────────────────────────────── */
+
+  if (phase === "warmup") {
+    return (
+      <WarmUp
+        dayName={today.day_name ?? "Today"}
+        exercises={exercises.map((e) => ({
+          name: e.name, muscle: e.muscle, equipment: e.equipment,
+        }))}
+        topKg={exercises[0] ? opener(exercises[0]) : 0}
+        onDone={() => setPhase("logging")}
+      />
     );
   }
 

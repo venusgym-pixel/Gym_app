@@ -22,9 +22,14 @@ export function NewPlanForm() {
       <Field label="Goal" hint="Shows on the member's phone under the plan name.">
         <Input name="goal" placeholder="Build strength" />
       </Field>
-      <Field label="Days per week" required>
+      {/* Days in the CYCLE, not days a week. The rotation advances per
+          completed session, so a 6-day cycle takes three weeks for someone
+          training twice a week — and a trainer can write a 12-day block that
+          hits each pattern three times at different intensities. */}
+      <Field label="Days in the cycle" required
+             hint="Members move through these in order, one per session — not one per weekday.">
         <Select name="days_per_week" defaultValue="3">
-          {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+          {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
             <option key={n} value={n}>{n} day{n === 1 ? "" : "s"}</option>
           ))}
         </Select>

@@ -141,7 +141,7 @@ export default async function PlansPage() {
                   </div>
                   <div className="text-right text-[12px] text-neutral-700">
                     <div>
-                      {p.days_per_week} days a week
+                      {p.days_per_week}-day cycle
                       {can(actor.role as GymRole, "workouts", "edit") && (
                         <>
                           {" · "}

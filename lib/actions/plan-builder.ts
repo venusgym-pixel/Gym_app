@@ -46,7 +46,7 @@ function refresh(planId?: string) {
 const Create = z.object({
   name: z.string().trim().min(2).max(80),
   goal: z.string().trim().max(120).optional(),
-  days_per_week: z.coerce.number().int().min(1).max(7),
+  days_per_week: z.coerce.number().int().min(1).max(30),
   is_template: z.coerce.boolean().optional(),
 });
 
@@ -56,7 +56,7 @@ export async function createPlan(form: FormData): Promise<ActionResult> {
   const { actor } = g;
 
   const parsed = Create.safeParse(Object.fromEntries(form));
-  if (!parsed.success) return { ok: false, error: "Give the plan a name and 1–7 days." };
+  if (!parsed.success) return { ok: false, error: "Give the plan a name and 1–30 days." };
   const v = parsed.data;
 
   const db = await createServerDb();
@@ -172,7 +172,11 @@ export async function addDay(planId: string): Promise<ActionResult> {
     .limit(1);
 
   const next = ((days?.[0]?.day_index as number | undefined) ?? 0) + 1;
-  if (next > 7) return { ok: false, error: "A plan holds at most 7 days." };
+  /* Thirty, matching the check constraint. A split is a cycle of any length,
+     not a week — the rotation advances per session — so seven was an arbitrary
+     ceiling that refused real programmes like an upper/lower/push/pull/legs/
+     arms/conditioning rotation. */
+  if (next > 30) return { ok: false, error: "A plan holds at most 30 days." };
 
   const { error } = await db.from("workout_days").insert({
     gym_id: actor.gymId,
