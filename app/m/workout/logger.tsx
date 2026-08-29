@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Cta, Screen } from "@/components/ui/primitives";
 import { WarmUp } from "./warmup";
+import { NumPad } from "./numpad";
+import { useWakeLock } from "./use-wake-lock";
 
 /* ============================================================================
    M-12 / M-13 / M-14 / M-16 · Preview, log, rest, done.
@@ -104,6 +106,13 @@ export function WorkoutLogger({ today }: { today: Today }) {
   );
 
   const [rest, setRest] = useState<number | null>(null);
+
+  /* Which number the pad is editing, or null for closed. */
+  const [editing, setEditing] = useState<{ index: number; field: "weight" | "reps" } | null>(null);
+
+  /* Held for the whole session, not just while logging: warming up is when
+     the phone has been face-down on a bench longest. */
+  useWakeLock(phase === "logging" || phase === "warmup");
   const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
 
   /* Keep the screen on while logging. A phone that sleeps between sets means
@@ -309,6 +318,22 @@ export function WorkoutLogger({ today }: { today: Today }) {
 
   if (phase === "preview") {
     const totalSets = exercises.reduce((n, e) => n + e.sets, 0);
+
+    /* A rough clock, so a member can decide whether they have time for this
+       before they start rather than at exercise four. Working sets are about
+       45 seconds; the rest between them is prescribed, so the sum is close
+       enough to be useful and is labelled "about" because it is not. */
+    const seconds = exercises.reduce(
+      (n, e) => n + e.sets * (45 + (e.rest_seconds ?? 90)),
+      0,
+    );
+    const minutes = Math.round(seconds / 60 / 5) * 5;
+
+    /* What to claim on a busy floor, and what the session actually trains.
+       Both answer questions people currently have to open five rows to
+       reason about. */
+    const muscles = [...new Set(exercises.map((e) => e.muscle).filter(Boolean))];
+    const kit = [...new Set(exercises.map((e) => e.equipment).filter(Boolean))];
     return (
       <Screen tabBar>
         <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">
@@ -319,6 +344,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
           {today.from_trainer
             ? `${exercises.length} exercises · ${totalSets} sets`
             : `Day ${today.day_index} of ${today.day_count} · ${exercises.length} exercises · ${totalSets} sets`}
+          {minutes > 0 && ` · about ${minutes} min`}
         </p>
 
         {/* Worth saying plainly. A session someone wrote for you by hand is
@@ -339,22 +365,64 @@ export function WorkoutLogger({ today }: { today: Today }) {
           </div>
         )}
 
-        <ul className="mt-5">
-          {exercises.map((e) => (
+        {muscles.length > 0 && (
+          <div className="mt-3.5 flex flex-wrap gap-1.5">
+            {muscles.map((m) => (
+              <span key={m}
+                    className="rounded-pill px-2.5 py-1 text-[0.724em] font-semibold"
+                    style={{ background: "var(--app-fill)", color: "var(--app-ink-70)" }}>
+                {m}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {kit.length > 0 && (
+          <p className="mt-2 text-[0.757em]" style={{ color: "var(--app-ink-45)" }}>
+            Needs: {kit.join(" · ")}
+          </p>
+        )}
+
+        <ul className="mt-5 space-y-2">
+          {exercises.map((e, i) => (
             <li
               key={e.exercise_id}
-              className="flex items-center gap-3 py-3.5"
-              style={{ borderBottom: "1px solid var(--app-hairline)" }}
+              className="flex items-center gap-3 rounded-lg p-3"
+              style={{ background: "var(--color-app-surface)" }}
             >
+              {/* A colour block with the movement's initial, rather than a
+                  photograph nobody has taken. Colour is per muscle group, so
+                  a push day reads as one family at a glance and costs no
+                  assets to produce. */}
+              <span
+                aria-hidden
+                className="grid h-[2.9em] w-[2.9em] shrink-0 place-items-center rounded-md text-[1.053em] font-bold"
+                style={{
+                  background: `var(--muscle-${(e.muscle ?? "").toLowerCase()}, var(--app-fill))`,
+                  color: "var(--color-app-bg)",
+                }}
+              >
+                {e.name.charAt(0).toUpperCase()}
+              </span>
+
               <div className="min-w-0 flex-1">
                 <p className="text-[0.921em] font-semibold">{e.name}</p>
                 <p className="mt-0.5 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
                   {e.sets} × {e.target_reps}
-                  {e.last && ` · last ${Number(e.last.weight_kg)}kg × ${e.last.reps}`}
+                  {e.target_weight_kg ? ` · ${Number(e.target_weight_kg)}kg` : ""}
+                </p>
+                {/* Last time, given its own line rather than trailing the
+                    targets. It is the number that decides what happens on the
+                    first set, so it should not be read last. */}
+                <p className="mt-0.5 text-[0.757em] text-app-good">
+                  {e.last
+                    ? `Last time ${Number(e.last.weight_kg)}kg × ${e.last.reps}`
+                    : "First time — start light"}
                 </p>
               </div>
-              <span className="text-[0.724em]" style={{ color: "var(--app-ink-40)" }}>
-                {e.equipment}
+
+              <span className="shrink-0 text-[0.724em]" style={{ color: "var(--app-ink-40)" }}>
+                {i + 1}
               </span>
             </li>
           ))}
@@ -377,6 +445,11 @@ export function WorkoutLogger({ today }: { today: Today }) {
   if (!ex) return null;
   const sets = rows[ex.exercise_id] ?? [];
   const doneCount = sets.filter((s) => s.done).length;
+
+  /* Across the whole session, for the progress bar in the header. */
+  const allRows = Object.values(rows).flat();
+  const sessionTotal = allRows.length;
+  const sessionDone = allRows.filter((r) => r.done).length;
   const volume = Object.entries(rows).reduce(
     (sum, [, list]) => sum + list.filter((s) => s.done).reduce((v, s) => v + s.reps * s.weight, 0),
     0,
@@ -400,65 +473,86 @@ export function WorkoutLogger({ today }: { today: Today }) {
           </div>
           <h1 className="mt-2 text-[1.579em]">{ex.name}</h1>
           <p className="mt-1.5 text-[0.822em] text-app-good">{suggestion}</p>
+
+          {/* Sets, not exercises. Counting exercises leaves the bar frozen
+              for four minutes at a time; counting sets moves it often enough
+              to read as progress, which is the whole point of showing it. */}
+          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-pill"
+               style={{ background: "var(--app-fill)" }}>
+            <div
+              className="session-bar h-full origin-left rounded-pill"
+              style={{
+                background: "var(--color-app-good)",
+                transform: `scaleX(${sessionTotal ? sessionDone / sessionTotal : 0})`,
+              }}
+            />
+          </div>
         </header>
 
         <div className="flex-1 overflow-auto px-5 py-4">
+          {/* Column header, so the three numbers are named once rather than
+              each row carrying its own labels. */}
+          <div className="mb-1.5 flex items-center gap-2 px-3 text-[0.691em] tracking-[0.06em] uppercase"
+               style={{ color: "var(--app-ink-40)" }}>
+            <span className="w-9">Set</span>
+            <span className="w-[4.6em]">Last</span>
+            <span className="flex-1 text-center">kg</span>
+            <span className="flex-1 text-center">Reps</span>
+            <span style={{ width: 56 }} />
+          </div>
+
           {sets.map((s, i) => (
             <div
               key={i}
-              className="mb-2.5 flex items-center gap-2 rounded-md p-3"
+              className="set-row mb-2.5 flex items-center gap-2 rounded-md p-3"
+              data-done={s.done}
               style={{
                 background: s.done ? "var(--app-good-soft-2)" : "var(--color-app-surface)",
               }}
             >
-              <div className="w-12">
-                <p className="text-[0.822em] font-semibold">Set {i + 1}</p>
-                {ex.last && (
-                  <p className="text-[0.691em]" style={{ color: "var(--app-ink-45)" }}>
-                    {Number(ex.last.weight_kg)}×{ex.last.reps}
-                  </p>
-                )}
-              </div>
+              <span className="w-9 text-[0.822em] font-semibold">{i + 1}</span>
 
-              <Stepper
+              {/* Last session's numbers for this exercise — the single most
+                  useful field on the screen, and what makes progressive
+                  overload possible without leaving it. */}
+              <span className="w-[4.6em] text-[0.724em]" style={{ color: "var(--app-ink-45)" }}>
+                {ex.last ? `${Number(ex.last.weight_kg)}×${ex.last.reps}` : "—"}
+              </span>
+
+              {/* Tap the number to edit it. The row arrives prefilled, so the
+                  common case is no interaction with these at all. */}
+              <Value
                 value={`${s.weight}`}
-                unit="kg"
-                onDown={() => step(ex.exercise_id, i, "weight", -2.5)}
-                onUp={() => step(ex.exercise_id, i, "weight", 2.5)}
+                onClick={() => setEditing({ index: i, field: "weight" })}
               />
-              <Stepper
+              <Value
                 value={`${s.reps}`}
-                unit="reps"
-                small
-                onDown={() => step(ex.exercise_id, i, "reps", -1)}
-                onUp={() => step(ex.exercise_id, i, "reps", 1)}
+                onClick={() => setEditing({ index: i, field: "reps" })}
               />
 
               <button
                 type="button"
                 onClick={() => void toggleSet(ex, i)}
                 aria-label={s.done ? `Undo set ${i + 1}` : `Log set ${i + 1}`}
-                className="ml-auto grid rounded-pill"
+                /* 56px, larger than the 48dp floor everything else uses.
+                   It is pressed fifteen to thirty times a session with wet
+                   hands, and a mis-tap corrupts the log. */
+                className="set-tick grid shrink-0 rounded-pill"
                 style={{
-                  width: 44, height: 44, placeItems: "center",
+                  width: 56, height: 56, placeItems: "center",
                   background: s.done ? "var(--color-app-good)" : "transparent",
                   border: s.done ? "1px solid var(--color-app-good)"
                                  : "1px solid rgb(249 244 237 / 0.25)",
                   color: s.done ? "var(--color-app-accent-ink)" : "var(--app-ink-35)",
                 }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none"
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" strokeWidth="3.2" strokeLinecap="round">
                   <path d="M5 13l4 4L19 7" />
                 </svg>
               </button>
             </div>
           ))}
-
-          <div className="mt-4 flex justify-between text-[0.789em]" style={{ color: "var(--app-ink-50)" }}>
-            <span>{doneCount} of {sets.length} sets</span>
-            <span>{Math.round(volume)} kg logged</span>
-          </div>
 
           {error && <Err>{error}</Err>}
         </div>
@@ -495,6 +589,31 @@ export function WorkoutLogger({ today }: { today: Today }) {
         </div>
       </div>
 
+      {editing && (
+        <NumPad
+          title={`${ex.name} · set ${editing.index + 1}`}
+          unit={editing.field === "weight" ? "kg" : "reps"}
+          decimals={editing.field === "weight"}
+          initial={
+            editing.field === "weight"
+              ? sets[editing.index].weight
+              : sets[editing.index].reps
+          }
+          onCommit={(v) => {
+            setRows((r) => ({
+              ...r,
+              [ex.exercise_id]: r[ex.exercise_id].map((row, n) =>
+                n === editing.index
+                  ? { ...row, [editing.field]: editing.field === "reps" ? Math.round(v) : v }
+                  : row,
+              ),
+            }));
+            setEditing(null);
+          }}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
       {rest !== null && (
         <RestSheet
           seconds={rest}
@@ -508,6 +627,21 @@ export function WorkoutLogger({ today }: { today: Today }) {
 }
 
 /* ── pieces ───────────────────────────────────────────────────────────────── */
+
+/* A number you tap to change. Reads as a value rather than a control,
+   because most of the time it is already right and wants no attention. */
+function Value({ value, onClick }: { value: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="value-cell flex-1 rounded-md py-2 text-center text-[1.118em] font-bold tracking-[-0.02em] tabular"
+      style={{ background: "var(--app-fill)", color: "var(--color-app-ink)", minHeight: 48 }}
+    >
+      {value}
+    </button>
+  );
+}
 
 function Stepper({
   value, unit, small, onDown, onUp,

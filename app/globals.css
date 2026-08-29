@@ -368,3 +368,93 @@
     transition-duration: 1ms;
   }
 }
+
+/* ============================================================================
+   Workout logging motion.
+
+   Transform and opacity only. Those two run on the compositor and skip layout
+   and paint entirely; height, width and background-color do not, and this
+   screen is used on mid-range Androids while the user is out of breath.
+
+   Durations are deliberately short. Set completion happens fifteen to thirty
+   times in a session, and Apple's own guidance is to avoid adding motion to
+   interactions that occur frequently — so 150ms is the ceiling here, not a
+   starting point.
+   ========================================================================= */
+@media (prefers-reduced-motion: no-preference) {
+  .set-tick {
+    transition: background-color 150ms ease, border-color 150ms ease;
+  }
+
+  .set-tick svg {
+    transition: transform 150ms cubic-bezier(0.05, 0.7, 0.1, 1),
+                opacity 150ms linear;
+  }
+
+  /* An un-done tick is a faint outline; completing it snaps the mark in. */
+  .set-row[data-done="false"] .set-tick svg { transform: scale(0.82); opacity: 0.45; }
+  .set-row[data-done="true"]  .set-tick svg { transform: scale(1);    opacity: 1; }
+
+  /* A finished row recedes so the eye lands on the next one without reading.
+     Opacity on the row's own content — not a background transition, which
+     would repaint. */
+  .set-row { transition: opacity 150ms linear; }
+  .set-row[data-done="true"] { opacity: 0.62; }
+
+  .value-cell { transition: transform 100ms ease; }
+  .value-cell:active { transform: scale(0.97); }
+
+  /* scaleX, never width: width forces layout on every frame of the fill. */
+  .session-bar { transition: transform 300ms cubic-bezier(0.2, 0, 0, 1); }
+
+  .numpad-sheet {
+    animation: numpad-in 250ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+  }
+  .numpad-scrim {
+    animation: numpad-fade 200ms linear both;
+  }
+  .numpad-key { transition: transform 100ms ease; }
+  .numpad-key:active { transform: scale(0.95); }
+
+  @keyframes numpad-in {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  @keyframes numpad-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+}
+
+/* Reduced motion keeps the state changes and drops the movement: a finished
+   row still recedes, the tick still fills, nothing slides or scales. Fades
+   are the accepted substitute because they convey the change without the
+   vestibular cost. */
+@media (prefers-reduced-motion: reduce) {
+  .set-row[data-done="true"] { opacity: 0.62; }
+  .set-row[data-done="false"] .set-tick svg { opacity: 0.45; }
+}
+
+
+/* ============================================================================
+   Muscle-group colours — the exercise thumbnail on the workout preview.
+
+   In a plain :root rather than @theme, deliberately. Tailwind only emits a
+   theme variable it can SEE referenced in the source it scans, and these are
+   composed at runtime as var(--muscle-${muscle}) — invisible to the scanner,
+   so every one of them was tree-shaken out and every thumbnail fell back to
+   grey. A plain block is emitted verbatim.
+
+   A colour family per group means a push day reads as one thing at a glance,
+   without needing a photograph of every movement in the library.
+   ========================================================================= */
+:root {
+  --muscle-chest: #c67139;
+  --muscle-back: #7f9bc4;
+  --muscle-shoulders: #d9a441;
+  --muscle-legs: #8fae72;
+  --muscle-glutes: #a98cc4;
+  --muscle-biceps: #cf8a6b;
+  --muscle-triceps: #b98ab0;
+  --muscle-core: #6fb0a8;
+}
