@@ -74,7 +74,7 @@ export function WarmUp({
   }
 
   return (
-    <Screen className="pb-32">
+    <Screen tabBar>
       <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">
         Before you start
       </p>

@@ -225,7 +225,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
 
   if (!today.assigned) {
     return (
-      <Screen center className="pb-32">
+      <Screen center tabBar>
         <h1 className="text-[1.711em]">No plan yet</h1>
         <p className="mt-2 max-w-[18.421em] text-[0.888em]" style={{ color: "var(--app-ink-55)" }}>
           Your trainer hasn&rsquo;t assigned a workout. Ask at reception and it
@@ -243,7 +243,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
   if (phase === "done" && summary) {
     const totalSets = Number(summary.sets);
     return (
-      <Screen className="pb-32">
+      <Screen tabBar>
         <div className="text-center">
           <div
             className="mx-auto grid place-items-center rounded-pill"
@@ -310,7 +310,7 @@ export function WorkoutLogger({ today }: { today: Today }) {
   if (phase === "preview") {
     const totalSets = exercises.reduce((n, e) => n + e.sets, 0);
     return (
-      <Screen className="pb-32">
+      <Screen tabBar>
         <p className="text-[0.724em] tracking-[0.08em] text-app-good uppercase">
           {today.plan_name}
         </p>
@@ -463,9 +463,20 @@ export function WorkoutLogger({ today }: { today: Today }) {
           {error && <Err>{error}</Err>}
         </div>
 
+        {/* Clears the tab bar, which did not exist when this screen was
+            written. Inline like <Screen tabBar>, so a stray pb-* utility
+            cannot win the cascade and bury Finish behind the bar again.
+
+            The bar stays visible rather than being hidden for the duration:
+            Prev, Next and Finish are the only controls here, so hiding it
+            would leave someone mid-session with no way out but finishing a
+            workout they may have opened by mistake. */}
         <div
-          className="flex items-center gap-2.5 px-5 pt-3.5 pb-[max(1.75rem,env(safe-area-inset-bottom))]"
-          style={{ borderTop: "1px solid var(--app-border)" }}
+          className="flex items-center gap-2.5 px-5 pt-3.5"
+          style={{
+            borderTop: "1px solid var(--app-border)",
+            paddingBottom: "var(--tabbar-clearance)",
+          }}
         >
           <NavBtn disabled={index === 0} onClick={() => setIndex((i) => i - 1)}>Prev</NavBtn>
           {index === exercises.length - 1 ? (
