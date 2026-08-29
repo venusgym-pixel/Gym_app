@@ -20,9 +20,11 @@ import { Feedback, Field, Input, Submit } from "@/components/admin/forms";
 export function UpiSetup({
   qrUrl,
   vpa,
+  paymentLink,
 }: {
   qrUrl: string | null;
   vpa: string | null;
+  paymentLink: string | null;
 }) {
   const [state, action] = useActionState(saveUpiDetails, null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -59,9 +61,20 @@ export function UpiSetup({
         />
       </Field>
 
-      <Field label="UPI ID" hint="Shown as text under the code, for members who type it.">
+      <Field
+        label="UPI ID"
+        hint="Also builds the 'Pay in your UPI app' button, with the plan's amount already filled in."
+      >
         <Input name="upi_vpa" defaultValue={vpa ?? ""} placeholder="venusgym@okhdfcbank"
                className="font-mono" />
+      </Field>
+
+      <Field
+        label="Payment page link"
+        hint="Optional. A Razorpay or BharatPe page, if you already use one. Members see it as a second option — it cannot carry the amount, so the UPI button comes first."
+      >
+        <Input name="payment_link" defaultValue={paymentLink ?? ""} type="url"
+               placeholder="https://rzp.io/l/your-page" />
       </Field>
 
       <Feedback state={state} />

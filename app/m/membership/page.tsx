@@ -70,7 +70,7 @@ export default async function MembershipPage() {
       : Promise.resolve({ data: [] }),
     db
       .from("gyms")
-      .select("upi_qr_path, upi_vpa")
+      .select("name, upi_qr_path, upi_vpa, payment_link")
       .eq("id", actor.gymId)
       .maybeSingle(),
     /* A claim already in the queue. Without this the member can send a
@@ -88,7 +88,10 @@ export default async function MembershipPage() {
       : Promise.resolve({ data: [] }),
   ]);
 
-  const gymPay = gymRow as { upi_qr_path: string | null; upi_vpa: string | null } | null;
+  const gymPay = gymRow as {
+    name: string; upi_qr_path: string | null; upi_vpa: string | null;
+    payment_link: string | null;
+  } | null;
   /* The QR lives in a PUBLIC bucket, unlike payment proofs: it is the same
      code taped to the counter, and a signed URL would expire while the
      member is still in their UPI app. */
@@ -197,6 +200,8 @@ export default async function MembershipPage() {
             plans={(plans ?? []) as { id: string; name: string; price_paise: string; duration_days: number }[]}
             upiQrUrl={upiQrUrl}
             upiVpa={gymPay?.upi_vpa ?? null}
+            gymName={gymPay?.name ?? "your gym"}
+            paymentLink={gymPay?.payment_link ?? null}
             lastClaim={
               lastClaim
                 ? {

@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 import { submitPaymentProof } from "@/lib/actions/payment-proof";
 import { Cta, ErrorNote, Hint, Label } from "@/components/ui/primitives";
 import { formatINR } from "@/lib/money";
+import { buildUpiLink } from "@/lib/upi";
 import type { ActionResult } from "@/lib/actions/members";
 
 /* ============================================================================
@@ -29,11 +30,17 @@ export function PayFlow({
   plans,
   upiQrUrl,
   upiVpa,
+  gymName,
+  paymentLink,
   lastClaim,
 }: {
   plans: Plan[];
   upiQrUrl: string | null;
   upiVpa: string | null;
+  /** Shown as the payee inside the UPI app, so it must be the gym's name. */
+  gymName: string;
+  /** Optional hosted page, for gyms that already run one. */
+  paymentLink: string | null;
   /**
    * The member's most recent claim, whichever way it went.
    *
@@ -84,6 +91,19 @@ export function PayFlow({
   }
 
   const plan = plans.find((p) => p.id === planId);
+
+  /* Rebuilt whenever the chosen plan changes, so the amount in the link is
+     always the amount on screen. Null when the gym has given no usable VPA —
+     a button that opens a payment app with no payee is worse than no button,
+     because the member believes they have paid. */
+  const upiLink = upiVpa
+    ? buildUpiLink({
+        vpa: upiVpa,
+        payeeName: gymName,
+        amountPaise: plan?.price_paise,
+        note: plan ? `${plan.name} membership` : null,
+      })
+    : null;
 
   const rejected = lastClaim?.status === "failed" ? lastClaim : null;
 
@@ -160,9 +180,39 @@ export function PayFlow({
             <p className="mt-3 font-mono text-[0.921em] font-semibold">{upiVpa}</p>
           )}
 
+          {/* One tap to GPay, PhonePe or a bank app, with the amount already
+              filled in — the retyping is what produced wrong amounts for
+              reception to reconcile.
+
+              Android resolves upi:// through its app chooser; on iOS the
+              generic scheme often resolves to nothing, so the QR and the
+              typed id above stay exactly where they were. This is one more
+              way to pay, not a replacement for the other two. */}
+          {upiLink && (
+            <a
+              href={upiLink}
+              className="mt-4 block w-full rounded-pill bg-app-accent py-3.5 text-center text-[0.987em] font-bold text-app-accent-ink"
+            >
+              Pay {plan ? formatINR(plan.price_paise) : ""} in your UPI app
+            </a>
+          )}
+
           <p className="mt-2 text-[0.757em]" style={{ color: "var(--app-ink-45)" }}>
-            Screenshot the QR, or open your UPI app and scan it from there.
+            {upiLink
+              ? "Or scan the code above from your UPI app."
+              : "Screenshot the QR, or open your UPI app and scan it from there."}
           </p>
+
+          {paymentLink && (
+            <a
+              href={paymentLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-block text-[0.822em] font-semibold text-app-accent underline"
+            >
+              Open the gym&rsquo;s payment page
+            </a>
+          )}
         </div>
       ) : (
         <div className="rounded-lg px-5 py-4" style={{ background: "var(--color-app-surface)" }}>

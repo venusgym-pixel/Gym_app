@@ -26,7 +26,7 @@ export default async function SettingsPage() {
 
   const { data: gym } = await db
     .from("gyms")
-    .select("id, name, slug, address, phone, email, gstin, timezone, currency, reminder_hour, upi_qr_path, upi_vpa")
+    .select("id, name, slug, address, phone, email, gstin, timezone, currency, reminder_hour, upi_qr_path, upi_vpa, payment_link")
     .eq("id", actor.gymId)
     .single();
 
@@ -34,7 +34,7 @@ export default async function SettingsPage() {
     id: string; name: string; slug: string; address: string | null;
     phone: string | null; email: string | null; gstin: string | null;
     timezone: string; currency: string; reminder_hour: number;
-    upi_qr_path: string | null; upi_vpa: string | null;
+    upi_qr_path: string | null; upi_vpa: string | null; payment_link: string | null;
   };
 
   const upiQrUrl = g.upi_qr_path
@@ -80,7 +80,7 @@ export default async function SettingsPage() {
 
         <div className="space-y-4">
           <Card title="Taking payment">
-            <UpiSetup qrUrl={upiQrUrl} vpa={g.upi_vpa} />
+            <UpiSetup qrUrl={upiQrUrl} vpa={g.upi_vpa} paymentLink={g.payment_link} />
           </Card>
 
           <Card title="WhatsApp">

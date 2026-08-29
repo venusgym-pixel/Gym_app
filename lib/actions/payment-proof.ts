@@ -42,10 +42,14 @@ export async function saveUpiDetails(
   }
 
   const vpa = String(form.get("upi_vpa") ?? "").trim();
+  const paymentLink = String(form.get("payment_link") ?? "").trim();
   const file = form.get("qr") as File | null;
   const db = await createServerDb();
 
-  const patch: Record<string, unknown> = { upi_vpa: vpa || null };
+  const patch: Record<string, unknown> = {
+    upi_vpa: vpa || null,
+    payment_link: paymentLink || null,
+  };
 
   /* Read the current path before overwriting it, so the old image can be
      cleared up once the new one is safely in place. */
