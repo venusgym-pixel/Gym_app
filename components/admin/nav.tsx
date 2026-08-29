@@ -35,7 +35,11 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Dashboard",   href: "/admin",            module: "dashboard",   ready: true },
   { label: "Members",     href: "/admin/members",    module: "members",     ready: true },
   { label: "Leads",       href: "/admin/leads",      module: "leads",       ready: true },
-  { label: "Plans",       href: "/admin/plans",      module: "memberships", ready: true },
+  /* "Membership plans", not "Plans". Nesting the coaching screens put two
+     items called Plans in one sidebar — what the gym SELLS and what a member
+     TRAINS on — which is the kind of collision you only see once both are
+     expanded in front of you. */
+  { label: "Membership plans", href: "/admin/plans",  module: "memberships", ready: true },
   { label: "Payments",    href: "/admin/payments",   module: "payments",    ready: true },
   { label: "Attendance",  href: "/admin/attendance", module: "attendance",  ready: true },
   { label: "Kiosk",       href: "/admin/kiosk",      module: "attendance",  ready: true },
@@ -50,7 +54,7 @@ const ADMIN_NAV: NavItem[] = [
     sub: [
       { label: "Board",      href: "/trainer/board",     module: "workouts",  ready: true },
       { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
-      { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
+      { label: "Workout plans", href: "/trainer/plans",   module: "workouts",  ready: true },
     ] },
   { label: "Messaging",   href: "/admin/messaging",  module: "messaging",   ready: true },
   { label: "Reports",     href: "/admin/reports",    module: "reports",     ready: true },
@@ -70,7 +74,7 @@ const TRAINER_NAV: NavItem[] = [
   { label: "Board",      href: "/trainer/board",     module: "workouts",  ready: true },
   { label: "Equipment",  href: "/trainer/equipment", module: "equipment", ready: true },
   { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
-  { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
+  { label: "Workout plans", href: "/trainer/plans",  module: "workouts",  ready: true },
 ];
 
 /** Longest-prefix match, so /admin/members/abc still highlights Members —
