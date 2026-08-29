@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 
 /* ============================================================================
    Member bottom tab bar (ui-screens-spec §1.3).
@@ -14,33 +15,92 @@ import { usePathname } from "next/navigation";
    here instead lets the bar stay mounted and move the dot on tap, while the
    page underneath streams in behind its loading boundary.
 
-   The QR button is the centre FAB and is visually the loudest thing on the
-   screen, because checking in is the single most-used action in the whole
-   product — spec rule 2: reachable in one tap from anywhere.
+   Five tabs of equal weight, check-in among them. It used to be a raised
+   circle half again the size of everything else, on the reasoning that
+   checking in is the most-used action in the product. That is still true and
+   it was still the wrong shape: the circle overhung the bar by 1.8em, so
+   every scrolling screen had to reserve 3.4em of clearance it could never
+   use for anything, and on a 915px phone that is a visible slice of the
+   screen spent on one button's shadow.
+
+   It hides on the way down and comes back on the way up — see Hiding below.
    ========================================================================= */
 
 const TABS = [
   { href: "/m", label: "Home" },
   { href: "/m/workout", label: "Workout" },
+  { href: "/m/checkin", label: "Check in", qr: true },
   { href: "/m/progress", label: "Progress" },
   { href: "/m/more", label: "More" },
 ] as const;
 
+/* ── Hiding ──────────────────────────────────────────────────────────────
+   Direction of travel, not a timer.
+
+   A timer would hide the bar while someone is reading a stationary screen,
+   and — worse — a screen with nothing to scroll would have no way to bring
+   it back, because there is no gesture left to make. Tying it to scroll
+   direction means a page that does not scroll never hides its own
+   navigation, and the gesture that reveals it is the one people already
+   make to look upward.
+
+   The threshold exists because a list settling after a tap produces a few
+   pixels of scroll in each direction, and a bar that flickers on every one
+   of those is worse than one that never moves. */
+const HIDE_AFTER = 24;   // px of downward travel before it goes
+const SHOW_AFTER = 12;   // px upward to bring it straight back
+
+function useHideOnScroll() {
+  const [hidden, setHidden] = useState(false);
+  const lastY = useRef(0);
+  const anchor = useRef(0);
+
+  useEffect(() => {
+    lastY.current = window.scrollY;
+    anchor.current = window.scrollY;
+    let frame = 0;
+
+    const onScroll = () => {
+      if (frame) return;                       // one read per frame, never per event
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const y = window.scrollY;
+        const down = y > lastY.current;
+
+        // Anchor resets whenever direction changes, so the thresholds measure
+        // travel in ONE direction rather than distance from the top.
+        if (down !== (anchor.current < lastY.current)) anchor.current = lastY.current;
+
+        /* Never hide at the very top: there is nothing above to reveal, and a
+           bar that vanishes on the first flick of a short page looks broken. */
+        if (down && y > 64 && y - anchor.current > HIDE_AFTER) setHidden(true);
+        else if (!down && anchor.current - y > SHOW_AFTER) setHidden(false);
+
+        lastY.current = y;
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  return hidden;
+}
+
 export function MemberTabBar() {
   /* Sub-pages like /m/attendance are reached from a tile rather than a tab, so
-     they match nothing here and no dot lights up. That is honest: none of the
-     four tabs is where you are. */
+     they match nothing here and no tab lights up. That is honest: none of the
+     five is where you are. */
   const current = usePathname();
-  const [a, b, c, d] = TABS;
+  const hidden = useHideOnScroll();
 
-  /* The height GROWS by the safe-area inset rather than being padded inwards
-     from a fixed 96px. With border-box sizing the old version let the home
-     indicator eat 34px out of the bar on an installed iPhone, squashing the
-     labels upward — which is why it looked wrong in the app but fine in a
-     browser tab, where the inset is 0. */
   return (
     <nav
-      className="app-scale fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-[29em] items-start justify-between border-t px-[1em]"
+      data-hidden={hidden}
+      className="app-scale fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-[29em] items-start justify-between border-t px-[0.5em] tabbar"
       style={{
         height: "var(--tabbar-total)",
         paddingBottom: "env(safe-area-inset-bottom, 0px)",
@@ -48,49 +108,52 @@ export function MemberTabBar() {
         borderColor: "var(--app-hairline)",
       }}
     >
-      <Tab {...a} current={current} />
-      <Tab {...b} current={current} />
-
-      <Link
-        href="/m/checkin"
-        aria-label="Check in"
-        className="grid h-[4.2em] w-[4.2em] -translate-y-[1.8em] place-items-center rounded-pill bg-app-accent"
-        style={{ boxShadow: "0 8px 24px rgb(198 113 57 / 0.45)" }}
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-             stroke="var(--color-app-accent-ink)" strokeWidth="2.75" strokeLinecap="round">
-          <rect x="3" y="3" width="7" height="7" rx="1.5" />
-          <rect x="14" y="3" width="7" height="7" rx="1.5" />
-          <rect x="3" y="14" width="7" height="7" rx="1.5" />
-          <path d="M14 14h3v3M20 20h1M17 20v1" />
-        </svg>
-      </Link>
-
-      <Tab {...c} current={current} />
-      <Tab {...d} current={current} />
+      {TABS.map((t) => (
+        <Tab key={t.href} href={t.href} label={t.label}
+             qr={"qr" in t ? t.qr : false} current={current} />
+      ))}
     </nav>
   );
 }
 
 /* A bare 10px text link gave a touch target about 13px tall — far under the
    44pt Apple and 48dp Google minimums, which is why the tabs felt like they
-   needed aiming at. The link now fills the bar's full control height, so the
+   needed aiming at. The link fills the bar's full control height, so the
    target is the whole column even though the label is still small. */
-function Tab({ href, label, current }: { href: string; label: string; current: string }) {
+function Tab({
+  href, label, qr, current,
+}: {
+  href: string; label: string; qr: boolean; current: string;
+}) {
   const on = current === href;
   return (
     <Link
       href={href}
       aria-current={on ? "page" : undefined}
-      className="flex w-[4.2em] flex-col items-center justify-center gap-[0.3em] text-[0.72em] font-medium"
+      className="flex flex-1 flex-col items-center justify-center gap-[0.25em] text-[0.72em] font-medium"
       style={{
         height: "var(--tabbar-controls)",
-        color: on ? "var(--color-app-accent)" : "var(--app-ink-45)",
+        color: on || qr ? "var(--color-app-accent)" : "var(--app-ink-45)",
       }}
     >
-      <TabDot on={on} />
+      {qr ? <QrGlyph /> : <TabDot on={on} />}
       {label}
     </Link>
+  );
+}
+
+/* Check-in keeps its icon and its accent colour — it is still the most-used
+   action — but inside the same footprint as everything else. Prominence
+   through contrast rather than through size. */
+function QrGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden
+         stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <path d="M14 14h3v3M20 20h1M17 20v1" />
+    </svg>
   );
 }
 

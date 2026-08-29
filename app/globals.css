@@ -109,9 +109,12 @@
   /* Tab bar geometry, now in em so it scales with the type. */
   --tabbar-controls: 4.6em;
   --tabbar-total: calc(var(--tabbar-controls) + env(safe-area-inset-bottom, 0px));
-  /* Clearance for scrolling content: the bar, plus the FAB's overhang,
-     plus breathing room. */
-  --tabbar-clearance: calc(var(--tabbar-total) + 3.4em);
+  /* Clearance for scrolling content: the bar, plus breathing room.
+     Was + 3.4em, to clear a raised centre button that overhung the bar by
+     1.8em. That button is now the same size as its neighbours, so the
+     reserved strip shrinks with it — roughly 50px of screen handed back on
+     every scrolling member page. */
+  --tabbar-clearance: calc(var(--tabbar-total) + 1.2em);
 
   /* ── Membership status. One palette, six variants, used identically in
        admin tables, member home and the check-in kiosk (ui-screens-spec §0.3
@@ -330,5 +333,38 @@
   * {
     overflow: visible !important;
     box-shadow: none !important;
+  }
+}
+
+
+/* ============================================================================
+   Tab bar hiding.
+
+   Transform only — no height, no layout property — so the browser can run it
+   on the compositor and never reflows the page underneath. That is what keeps
+   it smooth on the mid-range Androids this is actually used on.
+
+   220ms is long enough to read as movement rather than a jump, short enough
+   that scrolling back up does not feel like waiting for the bar. The easing
+   is asymmetric on purpose: it leaves briskly and arrives with a gentler
+   curve, because the arrival is the one you are waiting for.
+   ========================================================================= */
+.tabbar {
+  transition: transform 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  will-change: transform;
+}
+
+.tabbar[data-hidden="true"] {
+  /* 110% rather than 100%: the border-top and any shadow must clear the edge
+     too, or a hairline stays stuck to the bottom of the screen. */
+  transform: translateY(110%);
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* Someone who has asked for less motion still needs the bar to get out of the
+   way — they asked for no animation, not for a permanent bar. */
+@media (prefers-reduced-motion: reduce) {
+  .tabbar {
+    transition-duration: 1ms;
   }
 }
