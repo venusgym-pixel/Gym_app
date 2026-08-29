@@ -66,7 +66,10 @@ export async function assignTrainer(
 ): Promise<ActionResult> {
   const actor = await requireActor();
   if (!can(actor.role as GymRole, "staff", "edit")) {
-    return { ok: false, error: "Only an owner or manager can assign trainers." };
+    /* Only the owner, in practice: the matrix gives a manager staff:view.
+       Saying "owner or manager" sent managers hunting for a button that would
+       have failed at the database anyway. */
+    return { ok: false, error: "Only an owner can assign trainers." };
   }
 
   const db = await createServerDb();
@@ -80,7 +83,41 @@ export async function assignTrainer(
   if (error) return { ok: false, error: "Could not assign the trainer." };
 
   revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/trainer/board");
   return { ok: true, message: "Trainer assigned." };
+}
+
+/**
+ * End a coaching relationship.
+ *
+ * Closed with a date rather than deleted: every trainer policy in the schema
+ * reads `ended_on is null`, so setting it is what withdraws access — while the
+ * row itself stays as the record that this trainer coached this member, which
+ * a past session's provenance depends on.
+ */
+export async function unassignTrainer(
+  memberId: string,
+  trainerId: string,
+): Promise<ActionResult> {
+  const actor = await requireActor();
+  if (!can(actor.role as GymRole, "staff", "edit")) {
+    return { ok: false, error: "Only an owner can change trainer assignments." };
+  }
+
+  const db = await createServerDb();
+  const { error } = await db
+    .from("trainer_clients")
+    .update({ ended_on: new Date().toISOString().slice(0, 10) })
+    .eq("gym_id", actor.gymId)
+    .eq("member_id", memberId)
+    .eq("trainer_id", trainerId)
+    .is("ended_on", null);
+
+  if (error) return { ok: false, error: "Could not remove the trainer." };
+
+  revalidatePath(`/admin/members/${memberId}`);
+  revalidatePath("/trainer/board");
+  return { ok: true, message: "Trainer removed." };
 }
 
 const Measure = z.object({

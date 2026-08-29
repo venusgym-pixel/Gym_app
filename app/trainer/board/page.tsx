@@ -1,4 +1,6 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { seesWholeGym } from "@/lib/auth/permissions";
+import type { GymRole } from "@/lib/db/database.types";
 import { PageHeader } from "@/components/admin/shell";
 import { Board, type BoardMember, type LibraryExercise, type PlanDay } from "./client";
 
@@ -27,14 +29,27 @@ export default async function BoardPage() {
   const { data: dateRow } = await db.rpc("gym_today", { p_gym_id: actor.gymId });
   const today = String(dateRow);
 
+  /* An owner coaching their own gym is the ordinary case for a single-site
+     Indian gym, and they will never appear in trainer_clients — nobody assigns
+     the owner to anybody. Scoped roles get their own clients; gym-wide ones
+     get the gym, which is what their permissions already say. */
+  const wholeGym = seesWholeGym(actor.role as GymRole, "workouts");
+
   const [{ data: clients }, { data: rx }, { data: library }, { data: days }] =
     await Promise.all([
-      db
-        .from("trainer_clients")
-        .select("member_id, members(id, full_name, member_code)")
-        .eq("gym_id", actor.gymId)
-        .eq("trainer_id", actor.userId)
-        .is("ended_on", null),
+      wholeGym
+        ? db
+            .from("members")
+            .select("id, full_name, member_code")
+            .eq("gym_id", actor.gymId)
+            .order("full_name")
+            .limit(200)
+        : db
+            .from("trainer_clients")
+            .select("member_id, members(id, full_name, member_code)")
+            .eq("gym_id", actor.gymId)
+            .eq("trainer_id", actor.userId)
+            .is("ended_on", null),
 
       db
         .from("workout_prescriptions")
@@ -73,13 +88,21 @@ export default async function BoardPage() {
     rxByMember.set(r.member_id, r);
   }
 
-  const members: BoardMember[] = ((clients ?? []) as unknown as ClientRow[])
-    .filter((c) => c.members)
-    .map((c) => ({
-      id: c.members!.id,
-      name: c.members!.full_name,
-      code: c.members!.member_code,
-      prescription: (rxByMember.get(c.member_id) ?? null) as BoardMember["prescription"],
+  /* The two queries return different shapes — one nests the member, the other
+     is the member — so flatten before anything else looks at them. */
+  type FlatRow = { id: string; full_name: string; member_code: string };
+  const rows: FlatRow[] = wholeGym
+    ? ((clients ?? []) as unknown as FlatRow[])
+    : ((clients ?? []) as unknown as ClientRow[])
+        .filter((c) => c.members)
+        .map((c) => c.members!);
+
+  const members: BoardMember[] = rows
+    .map((r) => ({
+      id: r.id,
+      name: r.full_name,
+      code: r.member_code,
+      prescription: (rxByMember.get(r.id) ?? null) as BoardMember["prescription"],
     }))
     .sort((a, b) => a.name.localeCompare(b.name));
 

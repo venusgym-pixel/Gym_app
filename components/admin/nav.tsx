@@ -55,6 +55,7 @@ const ADMIN_NAV: NavItem[] = [
 const TRAINER_NAV: NavItem[] = [
   { label: "Today",      href: "/trainer",           module: "dashboard", ready: true },
   { label: "Board",      href: "/trainer/board",     module: "workouts",  ready: true },
+  { label: "Equipment",  href: "/trainer/equipment", module: "equipment", ready: true },
   { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
   { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
 ];

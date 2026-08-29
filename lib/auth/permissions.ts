@@ -92,7 +92,11 @@ export const MATRIX: Record<GymRole, Partial<Record<Module, Grant>>> = {
     attendance: g("v", "assigned"),
     workouts: g("vced", "assigned"),
     exercises: g("vce", "all"),
-    equipment: g("v", "all"), // must see what is broken before programming it
+    /* Trainers register and maintain kit now. They are the people on the
+       floor when a cable snaps, and the exercise library they own points at
+       equipment rows — being able to name an exercise but not the machine it
+       uses made that a two-person job. Delete stays with the owner. */
+    equipment: g("vce", "all"), // must see what is broken before programming it
     diet: g("vc", "assigned"),
     progress: g("vce", "assigned"),
     messaging: g("vc", "assigned"),

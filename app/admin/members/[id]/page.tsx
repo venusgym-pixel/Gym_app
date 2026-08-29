@@ -7,6 +7,7 @@ import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR } from "@/lib/money";
 import { CheckInButton, CollectPayment } from "./collect";
+import { TrainerCard } from "./trainer";
 import type {
   MembershipStatus } from "@/lib/db/database.types";
 
@@ -39,7 +40,8 @@ export default async function MemberProfile({
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: member }, { data: plans }] = await Promise.all([
+  const [{ data: member }, { data: plans }, { data: staff }, { data: coach }] =
+    await Promise.all([
     db.from("members")
       .select(`id, member_code, full_name, phone, email, date_of_birth, gender,
                joined_on, emergency_contact_name, emergency_contact_phone, claimed_at, user_id,
@@ -48,6 +50,18 @@ export default async function MemberProfile({
     db.from("plans")
       .select("id, name, duration_days, price_paise")
       .eq("gym_id", actor.gymId).eq("is_active", true).order("sort_order"),
+
+    /* Who could coach this member. gym_users carries the role; profiles the
+       name. */
+    db.from("gym_users")
+      .select("user_id, profiles(full_name)")
+      .eq("gym_id", actor.gymId).eq("role", "trainer").eq("is_active", true),
+
+    // Who does, right now. ended_on null is what every trainer policy reads.
+    db.from("trainer_clients")
+      .select("trainer_id, profiles(full_name)")
+      .eq("gym_id", actor.gymId).eq("member_id", id).is("ended_on", null)
+      .maybeSingle(),
   ]);
 
   if (!member) notFound();
@@ -134,6 +148,29 @@ export default async function MemberProfile({
               claimedAt={(m as unknown as { claimed_at: string | null }).claimed_at}
               canEdit
               joinBase={`https://${(await headers()).get("host") ?? ""}`}
+            />
+          </Card>
+
+          <Card title="Trainer">
+            <TrainerCard
+              memberId={m.id}
+              canEdit={actor.role === "owner"}
+              trainers={((staff ?? []) as unknown as {
+                user_id: string; profiles: { full_name: string } | null;
+              }[]).map((t) => ({
+                id: t.user_id,
+                name: t.profiles?.full_name ?? "Trainer",
+              }))}
+              current={
+                coach
+                  ? {
+                      id: (coach as unknown as { trainer_id: string }).trainer_id,
+                      name:
+                        (coach as unknown as { profiles: { full_name: string } | null })
+                          .profiles?.full_name ?? "Trainer",
+                    }
+                  : null
+              }
             />
           </Card>
 

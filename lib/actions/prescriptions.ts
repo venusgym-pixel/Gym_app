@@ -24,9 +24,22 @@ const Item = z.object({
   sets: z.coerce.number().int().min(1).max(20),
   target_reps: z.coerce.number().int().min(1).max(100),
   /* Empty means bodyweight or "whatever you managed last time" — a real
-     answer, and different from zero. */
-  target_weight_kg: z.union([z.coerce.number().min(0).max(1000), z.literal("")]).optional(),
-  rest_seconds: z.coerce.number().int().min(0).max(600).default(90),
+     answer, and different from zero.
+
+     preprocess rather than a union with z.literal(""): zod tries union arms in
+     order and z.coerce.number() turns "" into 0, which passes min(0), so the
+     literal arm was dead code and every blank weight was being stored as 0kg.
+     The member then reads "0 kg" where the coach meant bodyweight. */
+  target_weight_kg: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().min(0).max(1000).optional(),
+  ),
+  /* Same trap: a cleared rest field coerced to 0, prescribing no rest at all
+     between sets. Blank must fall through to the default. */
+  rest_seconds: z.preprocess(
+    (v) => (v === "" || v === null ? undefined : v),
+    z.coerce.number().int().min(0).max(600).default(90),
+  ),
   notes: z.string().trim().max(200).optional(),
 });
 
@@ -114,10 +127,7 @@ export async function savePrescription(payload: unknown): Promise<ActionResult> 
     position: i + 1,
     sets: it.sets,
     target_reps: it.target_reps,
-    target_weight_kg:
-      it.target_weight_kg === "" || it.target_weight_kg === undefined
-        ? null
-        : it.target_weight_kg,
+    target_weight_kg: it.target_weight_kg ?? null,
     rest_seconds: it.rest_seconds,
     notes: it.notes || null,
   }));

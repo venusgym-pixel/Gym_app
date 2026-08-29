@@ -132,8 +132,23 @@ create policy prescriptions_own on workout_prescriptions for select to authentic
    can never drift apart. */
 create policy prescription_items_trainer_read on prescription_items for select to authenticated
   using (gym_id = (select auth_gym_id())
-     and exists (select 1 from workout_prescriptions r
-                  where r.id = prescription_items.prescription_id));
+     and exists (
+       select 1 from workout_prescriptions r
+        where r.id = prescription_items.prescription_id
+          and (
+            /* The coach who owns the client, or the member themselves. Spelled
+               out rather than leaning on the nested select being RLS-filtered:
+               that narrows this policy by accident, and one security-definer
+               helper or one extra permissive policy on workout_prescriptions
+               would silently turn "narrow" into "every member in the gym". */
+            exists (select 1 from trainer_clients tc
+                     where tc.member_id = r.member_id
+                       and tc.trainer_id = (select auth.uid())
+                       and tc.ended_on is null)
+            or exists (select 1 from members m
+                        where m.id = r.member_id
+                          and m.user_id = (select auth.uid()))
+          )));
 
 create policy prescription_items_trainer_write on prescription_items for insert to authenticated
   with check (gym_id = (select auth_gym_id())

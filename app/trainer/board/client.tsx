@@ -86,8 +86,8 @@ export function Board({
     return (
       <Card>
         <EmptyState>
-          No clients assigned to you yet. A manager assigns members to a trainer
-          from the member profile.
+          No clients assigned to you yet. An owner assigns members to a trainer
+          on the member&rsquo;s profile, under Trainer.
         </EmptyState>
       </Card>
     );
@@ -288,6 +288,18 @@ function Editor({
                 <Num label="Rest s" value={it.rest_seconds}
                      onChange={(v) => patch(i, { rest_seconds: v })} min={0} max={600} />
               </div>
+
+              {/* Bound at last. The field existed in the payload and the type
+                  with nothing writing to it, so every coaching cue saved as
+                  null — and items are replaced wholesale on save, so any note
+                  written elsewhere was wiped on the next edit. */}
+              <Input
+                value={it.notes}
+                onChange={(e) => patch(i, { notes: e.target.value })}
+                placeholder="Cue for this exercise — optional"
+                maxLength={200}
+                className="mt-2 text-[12.5px]"
+              />
             </div>
           ))}
         </div>
