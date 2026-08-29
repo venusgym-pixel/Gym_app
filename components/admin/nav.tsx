@@ -54,6 +54,7 @@ const ADMIN_NAV: NavItem[] = [
    nav. They come back when the schema does. */
 const TRAINER_NAV: NavItem[] = [
   { label: "Today",      href: "/trainer",           module: "dashboard", ready: true },
+  { label: "Board",      href: "/trainer/board",     module: "workouts",  ready: true },
   { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
   { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
 ];

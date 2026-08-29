@@ -532,3 +532,118 @@ describe("a split longer than a week", () => {
     ).rejects.toThrow(/day_index/i);
   });
 });
+
+describe("a trainer writing today's session for one member", () => {
+  async function prescribe(items: { exercise: string; sets: number; reps: number; kg: number | null }[],
+                           opts: { dayName?: string; note?: string } = {}) {
+    const [rx] = await db.sql<{ id: string }>(
+      `insert into workout_prescriptions (gym_id, member_id, for_date, day_name, plan_name, assigned_by, note)
+       values ($1, $2, gym_today($1), $3, 'Coached', $4, $5) returning id`,
+      [gym.gymId, gym.memberId, opts.dayName ?? "Legs — machines only", gym.staff.trainer,
+       opts.note ?? null]);
+
+    let pos = 0;
+    for (const it of items) {
+      pos += 1;
+      const [e] = await db.sql<{ id: string }>(
+        `select id from exercises where gym_id = $1 and name = $2`, [gym.gymId, it.exercise]);
+      await db.sql(
+        `insert into prescription_items
+           (gym_id, prescription_id, exercise_id, position, sets, target_reps, target_weight_kg)
+         values ($1, $2, $3, $4, $5, $6, $7)`,
+        [gym.gymId, rx.id, e.id, pos, it.sets, it.reps, it.kg]);
+    }
+    return rx.id;
+  }
+
+  it("outranks the plan rotation for that member, that day", async () => {
+    await assignPlan();
+    const rotation = await today();
+    expect(rotation.day_name).toContain("Push");
+
+    await prescribe([{ exercise: "Leg press", sets: 4, reps: 12, kg: 80 }]);
+
+    const t = await today();
+    expect(t.day_name).toBe("Legs — machines only");
+    expect((t as unknown as { from_trainer: boolean }).from_trainer).toBe(true);
+    expect(t.exercises).toHaveLength(1);
+    expect(t.exercises![0].name).toBe("Leg press");
+    expect(t.exercises![0].sets).toBe(4);
+    expect(t.exercises![0].target_reps).toBe(12);
+  });
+
+  it("works with no plan assigned at all", async () => {
+    /* The coach-only gym: nobody is on a programme, every session is written
+       by hand. Without this the member sees "no plan assigned". */
+    await prescribe([{ exercise: "Back squat", sets: 5, reps: 5, kg: 60 }]);
+    const t = await today();
+    expect(t.assigned).toBe(true);
+    expect(t.exercises).toHaveLength(1);
+  });
+
+  it("falls back to the plan the moment it is cleared", async () => {
+    await assignPlan();
+    const id = await prescribe([{ exercise: "Leg press", sets: 3, reps: 10, kg: 70 }]);
+    expect((await today()).day_name).toBe("Legs — machines only");
+
+    await db.sql(`delete from workout_prescriptions where id = $1`, [id]);
+
+    const back = await today();
+    expect(back.day_name).toContain("Push");
+    expect((back as unknown as { from_trainer: boolean }).from_trainer).toBe(false);
+  });
+
+  it("does not touch any other member", async () => {
+    /* The override is per member per date. Ten people on leg day can each get
+       a different list, which is the whole point. */
+    const [other] = await db.sql<{ id: string }>(
+      `insert into members (gym_id, member_code, full_name, phone)
+       values ($1, 'M-778', 'Someone Else', '+919000000778') returning id`, [gym.gymId]);
+    await db.sql(
+      `insert into workout_assignments (gym_id, member_id, plan_id, assigned_by)
+       values ($1, $2, $3, $4)`, [gym.gymId, other.id, planId, gym.staff.trainer]);
+
+    await assignPlan();
+    await prescribe([{ exercise: "Leg press", sets: 4, reps: 12, kg: 80 }]);
+
+    const [r] = await db.sql<{ todays_workout: { day_name?: string } }>(
+      `select todays_workout($1, $2)`, [gym.gymId, other.id]);
+    expect(r.todays_workout.day_name).toContain("Push");
+  });
+
+  it("hides the day picker, because a coach wrote this one", async () => {
+    await assignPlan();
+    await prescribe([{ exercise: "Leg press", sets: 3, reps: 10, kg: 70 }]);
+    const t = await today();
+    expect((t as unknown as { days: unknown[] }).days).toEqual([]);
+  });
+
+  it("carries the coach's note through to the member", async () => {
+    await prescribe([{ exercise: "Leg press", sets: 3, reps: 10, kg: 70 }],
+                    { note: "Knee was sore last week — stop if it twinges" });
+    const t = await today();
+    expect((t as unknown as { note: string }).note).toContain("Knee was sore");
+  });
+
+  it("is one per member per day, so saving twice edits rather than duplicates", async () => {
+    await prescribe([{ exercise: "Leg press", sets: 3, reps: 10, kg: 70 }]);
+    await expect(
+      prescribe([{ exercise: "Back squat", sets: 5, reps: 5, kg: 60 }]),
+    ).rejects.toThrow(/duplicate key|workout_prescriptions/i);
+  });
+
+  it("uses the gym's date, not UTC's", async () => {
+    /* An Indian gym opens at 5am, which is still yesterday in UTC. Comparing
+       against current_date would hand the early crowd the wrong session. */
+    const [d] = await db.sql<{ gym_today: Date }>(
+      `select gym_today($1) as gym_today`, [gym.gymId]);
+
+    /* A date column comes back as a Date pinned to midnight, so read it back
+       as a plain calendar date rather than through the runner's own zone. */
+    const got = new Date(d.gym_today).toISOString().slice(0, 10);
+    const expected = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+    }).format(new Date());
+    expect(got).toBe(expected);
+  });
+});

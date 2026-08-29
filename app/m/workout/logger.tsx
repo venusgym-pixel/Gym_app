@@ -48,6 +48,10 @@ interface Today {
   days?: DayOption[];
   /** True when this is a day they picked, not the one the split offered. */
   swapped?: boolean;
+  /** Written by a coach for this member today, rather than the rotation. */
+  from_trainer?: boolean;
+  /** The coach's message for this session. */
+  note?: string | null;
 }
 
 interface SetRow {
@@ -312,9 +316,28 @@ export function WorkoutLogger({ today }: { today: Today }) {
         </p>
         <h1 className="mt-2 text-[1.974em]">{today.day_name}</h1>
         <p className="mt-1.5 text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
-          Day {today.day_index} of {today.day_count} · {exercises.length} exercises ·{" "}
-          {totalSets} sets
+          {today.from_trainer
+            ? `${exercises.length} exercises · ${totalSets} sets`
+            : `Day ${today.day_index} of ${today.day_count} · ${exercises.length} exercises · ${totalSets} sets`}
         </p>
+
+        {/* Worth saying plainly. A session someone wrote for you by hand is
+            not the same thing as the next slot in a rotation, and the numbers
+            on it are meant to be followed rather than treated as a starting
+            suggestion. */}
+        {today.from_trainer && (
+          <div className="mt-3 rounded-lg px-4 py-3"
+               style={{ background: "var(--color-app-surface)" }}>
+            <p className="text-[0.822em] font-semibold text-app-good">
+              Set by your trainer for today
+            </p>
+            {today.note && (
+              <p className="mt-1 text-[0.789em]" style={{ color: "var(--app-ink-55)" }}>
+                {today.note}
+              </p>
+            )}
+          </div>
+        )}
 
         <ul className="mt-5">
           {exercises.map((e) => (
