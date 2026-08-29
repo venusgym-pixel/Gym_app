@@ -6,7 +6,7 @@
    ========================================================================= */
 
 import { describe, expect, it } from "vitest";
-import { buildUpiLink, isVpa } from "../lib/upi";
+import { buildUpiLink, isVpa, vpaFromUpiPayload } from "../lib/upi";
 
 const base = { vpa: "venusgym@okhdfcbank", payeeName: "Fitwell Koramangala" };
 
@@ -77,5 +77,34 @@ describe("building the link", () => {
   it("falls back to a payee name rather than sending an empty one", () => {
     const p = new URLSearchParams(new URL(buildUpiLink({ ...base, payeeName: "   " })!).search);
     expect(p.get("pn")).toBe("Gym");
+  });
+});
+
+describe("reading the id back off a gym's own QR", () => {
+  it("pulls the payee out of a UPI code", () => {
+    const link = buildUpiLink({ ...base, amountPaise: 320000 })!;
+    expect(vpaFromUpiPayload(link)).toBe("venusgym@okhdfcbank");
+  });
+
+  it("handles a bare code with no amount, which is what most printed QRs are", () => {
+    expect(vpaFromUpiPayload("upi://pay?pa=gym.name@ybl&pn=Gym"))
+      .toBe("gym.name@ybl");
+  });
+
+  it("is not fooled by a QR that is not a payment code", () => {
+    /* A poster, a wifi code, a URL. Silently prefilling nonsense would be
+       worse than asking the owner to type it. */
+    for (const junk of ["https://example.com", "WIFI:S:gym;T:WPA;P:pw;;",
+                        "", "upi://pay", "upi://pay?pn=Gym"]) {
+      expect(vpaFromUpiPayload(junk)).toBeNull();
+    }
+  });
+
+  it("refuses a code whose payee is malformed", () => {
+    expect(vpaFromUpiPayload("upi://pay?pa=notavpa&pn=Gym")).toBeNull();
+  });
+
+  it("decodes percent-encoding, since that is how it travels", () => {
+    expect(vpaFromUpiPayload("upi://pay?pa=venusgym%40okhdfcbank")).toBe("venusgym@okhdfcbank");
   });
 });

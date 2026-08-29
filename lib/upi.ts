@@ -79,3 +79,31 @@ export function buildUpiLink({
      literally in the payee name and the note. %20 is what they expect. */
   return `upi://pay?${params.toString().replace(/\+/g, "%20")}`;
 }
+
+/**
+ * Pull the payee address out of a scanned UPI QR.
+ *
+ * Every UPI QR is a `upi://pay?pa=…` string, so the code the gym already has
+ * taped to its counter carries the id we are asking them to type. Reading it
+ * from the image they are uploading anyway removes the whole question of
+ * where to find it — which for most owners means digging through GPay's
+ * settings for a string they have never needed before.
+ *
+ * Returns null for anything that is not a UPI code, so a poster or a wifi QR
+ * held up to the camera says so instead of silently filling in nonsense.
+ */
+export function vpaFromUpiPayload(text: string): string | null {
+  const raw = text.trim();
+  if (!/^upi:\/\//i.test(raw)) return null;
+
+  /* Parsed by hand rather than with URL(): upi:// is not a hierarchical
+     scheme, and browsers disagree about whether the query survives parsing. */
+  const q = raw.slice(raw.indexOf("?") + 1);
+  if (!q || q === raw) return null;
+
+  const pa = new URLSearchParams(q).get("pa");
+  if (!pa) return null;
+
+  const vpa = decodeURIComponent(pa).trim();
+  return isVpa(vpa) ? vpa : null;
+}
