@@ -26,6 +26,9 @@ interface NavItem {
   /** Built and routable. Anything without this renders as muted text — a nav
    *  full of 404s is worse than one that admits what is still coming. */
   ready?: boolean;
+  /** Screens that live under this one. Shown indented while the section is
+   *  the current one, so the nav does not carry every leaf at all times. */
+  sub?: NavItem[];
 }
 
 const ADMIN_NAV: NavItem[] = [
@@ -38,7 +41,17 @@ const ADMIN_NAV: NavItem[] = [
   { label: "Kiosk",       href: "/admin/kiosk",      module: "attendance",  ready: true },
   { label: "Wall poster",  href: "/admin/kiosk/poster", module: "settings",  ready: true },
   { label: "Equipment",   href: "/admin/equipment",  module: "equipment",   ready: true },
-  { label: "Coaching",    href: "/trainer",          module: "workouts",    ready: true },
+  /* Coaching is the trainer surface, opened from inside admin rather than
+     instead of it. An owner supervising a coach used to click here and watch
+     the entire sidebar swap to five unfamiliar items with a "back" link as
+     the only way home. The screens are the same ones; only the way in
+     changed. */
+  { label: "Coaching",    href: "/trainer",          module: "workouts",    ready: true,
+    sub: [
+      { label: "Board",      href: "/trainer/board",     module: "workouts",  ready: true },
+      { label: "Exercises",  href: "/trainer/exercises", module: "exercises", ready: true },
+      { label: "Plans",      href: "/trainer/plans",     module: "workouts",  ready: true },
+    ] },
   { label: "Messaging",   href: "/admin/messaging",  module: "messaging",   ready: true },
   { label: "Reports",     href: "/admin/reports",    module: "reports",     ready: true },
   { label: "Staff",       href: "/admin/staff",      module: "staff",       ready: true },
@@ -64,7 +77,7 @@ const TRAINER_NAV: NavItem[] = [
  *  exact matching left every detail page with nothing selected. */
 function activeHref(pathname: string, items: NavItem[]): string | null {
   let best: string | null = null;
-  for (const i of items) {
+  for (const i of [...items, ...items.flatMap((x) => x.sub ?? [])]) {
     if (pathname === i.href || pathname.startsWith(i.href + "/")) {
       if (!best || i.href.length > best.length) best = i.href;
     }
@@ -90,9 +103,17 @@ export function AdminNav({
   const open = openedOn === pathname;
 
   const onTrainer = pathname.startsWith("/trainer");
-  const items = (onTrainer ? TRAINER_NAV : ADMIN_NAV).filter((i) =>
-    can(role, i.module, "view"),
-  );
+
+  /* Anyone who may open BOTH surfaces keeps the admin nav wherever they are,
+     with the coaching screens nested inside it. Swapping the sidebar out from
+     under an owner made the trainer screens feel like a different product
+     they had been dropped into. A trainer, who may only open one surface,
+     still gets that surface's own nav. */
+  const nested = mayOpen(role, "admin");
+  const items = (nested ? ADMIN_NAV : onTrainer ? TRAINER_NAV : ADMIN_NAV)
+    .filter((i) => can(role, i.module, "view"))
+    .map((i) => ({ ...i, sub: i.sub?.filter((c) => can(role, c.module, "view")) }));
+
   const active = activeHref(pathname, items);
 
   useEffect(() => {
@@ -152,7 +173,7 @@ export function AdminNav({
               style={{ background: "var(--color-surface)" }}
             >
               <ul className="grid grid-cols-2 gap-2">
-                {items.map((item) => (
+                {items.flatMap((i) => [i, ...(i.sub ?? [])]).map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
@@ -169,7 +190,7 @@ export function AdminNav({
                 ))}
               </ul>
 
-              {onTrainer && mayOpen(role, "admin") && (
+              {onTrainer && mayOpen(role, "admin") && !nested && (
                 <Link href="/admin"
                       className="mt-2 block rounded-md px-3 py-3 text-[14px] text-neutral-700">
                   ← Back to admin
@@ -201,23 +222,50 @@ export function AdminNav({
         </div>
 
         <nav className="flex flex-col gap-1 px-3 pb-3">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={active === item.href ? "page" : undefined}
-              className={`rounded-md px-3 py-2 text-[13.5px] whitespace-nowrap transition-colors ${
-                active === item.href
-                  ? "bg-neutral-900 font-semibold text-neutral-100"
-                  : "text-neutral-800 hover:bg-neutral-200"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {items.map((item) => {
+            /* Children appear only while their section is where you are, so
+               the sidebar stays the same length everywhere else. */
+            const inSection =
+              pathname === item.href || pathname.startsWith(item.href + "/");
+            return (
+              <div key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active === item.href ? "page" : undefined}
+                  className={`block rounded-md px-3 py-2 text-[13.5px] whitespace-nowrap transition-colors ${
+                    active === item.href
+                      ? "bg-neutral-900 font-semibold text-neutral-100"
+                      : "text-neutral-800 hover:bg-neutral-200"
+                  }`}
+                >
+                  {item.label}
+                </Link>
 
-          {/* An owner supervising coaching needs a way back out. */}
-          {onTrainer && mayOpen(role, "admin") && (
+                {item.sub && item.sub.length > 0 && inSection && (
+                  <div className="mt-0.5 ml-3 flex flex-col gap-0.5 border-l border-neutral-300 pl-2">
+                    {item.sub.map((c) => (
+                      <Link
+                        key={c.href}
+                        href={c.href}
+                        aria-current={active === c.href ? "page" : undefined}
+                        className={`rounded-md px-3 py-1.5 text-[12.5px] whitespace-nowrap transition-colors ${
+                          active === c.href
+                            ? "bg-neutral-900 font-semibold text-neutral-100"
+                            : "text-neutral-700 hover:bg-neutral-200"
+                        }`}
+                      >
+                        {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Only for a surface swap that still happens. With the coaching
+              screens nested, an admin role never loses this nav. */}
+          {onTrainer && mayOpen(role, "admin") && !nested && (
             <Link
               href="/admin"
               className="mt-3 rounded-md border-t border-neutral-300 px-3 pt-3 pb-2 text-[13.5px] whitespace-nowrap text-neutral-700 hover:bg-neutral-200"
