@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { BarChart } from "@/components/ui/chart";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatINR, formatINRCompact, formatDate } from "@/lib/money";
 
@@ -130,9 +131,15 @@ export default async function ReportsPage({
           {totalPaise === 0 ? (
             <EmptyState>No payments recorded in this window.</EmptyState>
           ) : (
-            <MonthBars
-              series={s.revenue.map((r) => ({
+            <BarChart
+              caption="Revenue by month"
+              color="var(--color-accent-600)"
+              surface="var(--color-surface)"
+              height={160}
+              format={(n) => formatINRCompact(n)}
+              data={s.revenue.map((r) => ({
                 label: r.label,
+                full: r.label,
                 value: Number(r.paise),
                 sub: `${r.payments} payment${r.payments === 1 ? "" : "s"}`,
               }))}
@@ -179,17 +186,35 @@ export default async function ReportsPage({
                       <div className="mb-1 flex justify-between text-[12px]">
                         <span>{r.label}</span>
                         <span className="tabular text-neutral-700">
+                          <span aria-hidden
+                                className="mr-1 inline-block h-2 w-2 rounded-pill align-middle"
+                                style={{ background: "var(--color-accent-600)" }} />
                           {r.renewals} renewed · {r.new} new
                         </span>
                       </div>
-                      <div className="flex h-2.5 overflow-hidden rounded-pill bg-neutral-200">
+                      {/* A meter, not a two-colour stack.
+
+                          This was sage against accent, and the two are not
+                          far enough apart to tell one segment from the other:
+                          measured, the pair sits at ΔE 12 in NORMAL vision —
+                          below the 15 floor, so it is not a colourblindness
+                          problem, it is a nobody problem. Every step of the
+                          sage ramp also reads grey, so no combination of the
+                          two brand hues fixes it.
+
+                          Part-to-whole needs one hue anyway: the fill is what
+                          renewed, the lighter track from the same ramp is the
+                          rest, and both numbers are written beside it. One
+                          colour, nothing to confuse, and no invented hue. */}
+                      <div className="h-2.5 overflow-hidden rounded-[4px]"
+                           style={{ background: "var(--color-accent-200)" }}>
                         <div
-                          className="bg-sage-600"
-                          style={{ width: `${(r.renewals / total) * 100}%` }}
-                        />
-                        <div
-                          className="bg-accent-400"
-                          style={{ width: `${(r.new / total) * 100}%` }}
+                          className="h-full"
+                          style={{
+                            width: `${(r.renewals / total) * 100}%`,
+                            borderRadius: "0 4px 4px 0",
+                            background: "var(--color-accent-600)",
+                          }}
                         />
                       </div>
                     </li>
@@ -222,7 +247,19 @@ export default async function ReportsPage({
               <h3 className="mb-2 font-mono text-[11px] tracking-[0.1em] text-neutral-600 uppercase">
                 By hour
               </h3>
-              <HourBars series={s.by_hour} />
+              <BarChart
+                caption="Check-ins by hour of day"
+                color="var(--color-accent-600)"
+                surface="var(--color-surface)"
+                height={96}
+                labelEvery={4}
+                data={s.by_hour.map((h) => ({
+                  label: String(h.hour).padStart(2, "0"),
+                  full: `${String(h.hour).padStart(2, "0")}:00`,
+                  value: h.n,
+                  sub: `${h.n} check-in${h.n === 1 ? "" : "s"}`,
+                }))}
+              />
 
               <h3 className="mt-5 mb-2 font-mono text-[11px] tracking-[0.1em] text-neutral-600 uppercase">
                 By weekday
@@ -249,60 +286,7 @@ export default async function ReportsPage({
    charting dependency, and bars must be direct flex children or their
    percentage heights resolve against an auto-height parent and collapse. */
 
-function MonthBars({
-  series,
-}: {
-  series: { label: string; value: number; sub: string }[];
-}) {
-  const peak = Math.max(1, ...series.map((p) => p.value));
-  return (
-    <div>
-      <div className="flex h-40 items-end gap-2">
-        {series.map((p) => (
-          <div
-            key={p.label}
-            className={`flex-1 rounded-sm ${p.value > 0 ? "bg-accent-400" : "bg-neutral-300"}`}
-            style={{ height: `${Math.max(3, (p.value / peak) * 100)}%` }}
-            title={`${p.label}: ${formatINR(p.value)} · ${p.sub}`}
-          />
-        ))}
-      </div>
-      <div className="mt-2 flex gap-2">
-        {series.map((p) => (
-          <div key={p.label} className="flex-1 text-center">
-            <div className="text-[10.5px] text-neutral-600">{p.label}</div>
-            <div className="tabular text-[11px] font-semibold">
-              {p.value > 0 ? formatINRCompact(p.value) : "—"}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function HourBars({ series }: { series: { hour: number; n: number }[] }) {
-  const peak = Math.max(1, ...series.map((h) => h.n));
-  return (
-    <div>
-      <div className="flex h-20 items-end gap-[3px]">
-        {series.map((h) => (
-          <div
-            key={h.hour}
-            className={`flex-1 rounded-sm ${h.n > 0 ? "bg-sage-600" : "bg-neutral-300"}`}
-            style={{ height: `${Math.max(3, (h.n / peak) * 100)}%` }}
-            title={`${String(h.hour).padStart(2, "0")}:00 — ${h.n} check-ins`}
-          />
-        ))}
-      </div>
-      <div className="mt-1 flex justify-between text-[10.5px] text-neutral-600">
-        <span>05:00</span>
-        <span>13:00</span>
-        <span>22:00</span>
-      </div>
-    </div>
-  );
-}
 
 function Breakdown({
   rows,
@@ -321,8 +305,18 @@ function Breakdown({
               {r.note && <span className="ml-2 text-neutral-600">{r.note}</span>}
             </span>
           </div>
-          <div className="h-2 overflow-hidden rounded-pill bg-neutral-200">
-            <div className="h-full bg-neutral-800" style={{ width: `${(r.value / peak) * 100}%` }} />
+          {/* Square where it leaves the baseline, 4px rounded at the data
+              end. A pill rounded at both ends puts a curve on the origin,
+              which reads as the bar starting somewhere above zero. */}
+          <div className="h-2 overflow-hidden rounded-[4px] bg-neutral-200">
+            <div
+              className="h-full"
+              style={{
+                width: `${(r.value / peak) * 100}%`,
+                borderRadius: "0 4px 4px 0",
+                background: "var(--color-accent-600)",
+              }}
+            />
           </div>
         </li>
       ))}

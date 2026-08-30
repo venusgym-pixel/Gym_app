@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { DaysLeft } from "@/components/ui/status-chip";
+import { BarChart } from "@/components/ui/chart";
 import { formatDate, formatINRCompact } from "@/lib/money";
 
 /* ============================================================================
@@ -109,7 +110,17 @@ export default async function AdminDashboard() {
           <div className="mt-6 grid gap-4 lg:grid-cols-[1.15fr_1fr]">
             {/* ── attendance ─────────────────────────────────────────────── */}
             <Card title="Attendance · last 14 days">
-              <AttendanceBars series={s.attendance.series} />
+              <BarChart
+                caption="Check-ins per day over the last 14 days"
+                color="var(--color-accent-600)"
+                surface="var(--color-surface)"
+                data={s.attendance.series.map((p) => ({
+                  label: new Date(p.d).toLocaleDateString("en-IN", { weekday: "narrow" }),
+                  full: formatDate(p.d),
+                  value: p.n,
+                  sub: `${p.n} check-in${p.n === 1 ? "" : "s"}`,
+                }))}
+              />
             </Card>
 
             {/* ── the renewal worklist ───────────────────────────────────── */}
@@ -176,34 +187,3 @@ export default async function AdminDashboard() {
  * the point is spotting a quiet Tuesday at a glance. A 40KB dependency for
  * fourteen divs is a bad trade on the screen that loads first.
  */
-function AttendanceBars({ series }: { series: { d: string; n: number }[] }) {
-  const peak = Math.max(1, ...series.map((p) => p.n));
-  const first = series[0]?.d;
-
-  return (
-    <div>
-      {/* Bars are direct flex children so their percentage heights resolve
-          against h-28. Wrapping each in an auto-height div collapses them to
-          nothing — the chart renders, empty, and looks like there is no data. */}
-      <div className="flex h-28 items-end gap-1.5">
-        {series.map((p) => (
-          <div
-            key={p.d}
-            className={`flex-1 rounded-sm transition-colors ${
-              p.n > 0 ? "bg-accent-400 hover:bg-accent-500" : "bg-neutral-300"
-            }`}
-            style={{ height: `${Math.max(4, (p.n / peak) * 100)}%` }}
-            title={`${p.n} check-in${p.n === 1 ? "" : "s"} on ${p.d}`}
-          />
-        ))}
-      </div>
-      <div className="mt-2 flex justify-between text-[10.5px] text-neutral-600">
-        {/* The series already carries its own dates — reading the clock here
-            would make the component impure for no benefit. */}
-        <span>{first ? formatDate(first) : ""}</span>
-        <span className="tabular">peak {peak}</span>
-        <span>today</span>
-      </div>
-    </div>
-  );
-}

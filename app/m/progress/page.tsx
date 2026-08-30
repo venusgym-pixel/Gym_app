@@ -1,3 +1,4 @@
+import { LineChart } from "@/components/ui/chart";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Screen } from "@/components/ui/primitives";
 import { formatDate } from "@/lib/money";
@@ -138,11 +139,22 @@ export default async function ProgressPage() {
                 </p>
               )}
             </div>
-            <WeightChart
-              points={rows
-                .filter((r) => r.weight_kg)
-                .map((r) => ({ d: r.taken_on, v: Number(r.weight_kg) }))}
+            <LineChart
+              caption="Body weight over time"
+              color="var(--color-app-accent)"
+              surface="var(--color-app-surface)"
               target={m.target_weight_kg ? Number(m.target_weight_kg) : null}
+              targetLabel={
+                m.target_weight_kg ? `target ${Number(m.target_weight_kg)}kg` : undefined
+              }
+              format={(n) => `${n.toFixed(1)}kg`}
+              data={rows
+                .filter((r) => r.weight_kg)
+                .map((r) => ({
+                  label: formatDate(r.taken_on),
+                  full: formatDate(r.taken_on),
+                  value: Number(r.weight_kg),
+                }))}
             />
           </section>
         ) : (
@@ -236,39 +248,3 @@ function Stat({ value, label, sub }: { value: string | number; label: string; su
 
 /** Inline SVG line chart. Scaled to the data plus the goal line, so the goal
  *  is always on screen rather than clipped off the bottom. */
-function WeightChart({
-  points, target,
-}: { points: { d: string; v: number }[]; target: number | null }) {
-  const W = 300, H = 110, PAD = 8;
-  const values = [...points.map((p) => p.v), ...(target ? [target] : [])];
-  const min = Math.min(...values) - 1;
-  const max = Math.max(...values) + 1;
-  const span = Math.max(0.1, max - min);
-
-  const x = (i: number) =>
-    PAD + (i / Math.max(1, points.length - 1)) * (W - PAD * 2);
-  const y = (v: number) => PAD + (1 - (v - min) / span) * (H - PAD * 2);
-
-  const line = points.map((p, i) => `${x(i)},${y(p.v).toFixed(1)}`).join(" ");
-
-  return (
-    <>
-      <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 h-[7.237em] w-full"
-           role="img"
-           aria-label={`Weight from ${points[0].v} to ${points.at(-1)!.v} kilograms`}>
-        {target !== null && (
-          <line x1="0" y1={y(target)} x2={W} y2={y(target)}
-                stroke="rgb(174 191 146 / 0.5)" strokeWidth="1.5" strokeDasharray="4 5" />
-        )}
-        <polyline points={line} fill="none" stroke="var(--color-app-accent)"
-                  strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx={x(points.length - 1)} cy={y(points.at(-1)!.v)} r="5"
-                fill="var(--color-app-accent)" />
-      </svg>
-      <div className="flex justify-between text-[0.691em]" style={{ color: "var(--app-ink-40)" }}>
-        <span>{formatDate(points[0].d)}</span>
-        <span>{formatDate(points.at(-1)!.d)}</span>
-      </div>
-    </>
-  );
-}
