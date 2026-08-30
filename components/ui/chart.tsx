@@ -131,9 +131,9 @@ export function BarChart({
                className="absolute inset-x-0 flex items-center"
                style={{ bottom: `${t * 100}%` }}>
             <span className="w-full border-t"
-                  style={{ borderColor: "var(--color-neutral-300, rgb(255 255 255 / 0.09))" }} />
+                  style={{ borderColor: "var(--chart-grid)" }} />
             <span className="ml-1.5 shrink-0 text-[10px] tabular"
-                  style={{ color: "var(--app-ink-40, #8a8172)" }}>
+                  style={{ color: "var(--chart-ink-dim)" }}>
               {format(max * t)}
             </span>
           </div>
@@ -167,7 +167,7 @@ export function BarChart({
                     /* 4px rounded data-end, square where it meets the
                        baseline, so the bar reads as growing from the axis. */
                     borderRadius: "4px 4px 0 0",
-                    background: d.value > 0 ? color : "var(--color-neutral-300, rgb(255 255 255 / 0.10))",
+                    background: d.value > 0 ? color : "var(--chart-grid)",
                     opacity: active === null || on ? 1 : 0.55,
                     outline: on ? `2px solid ${surface}` : undefined,
                   }}
@@ -188,7 +188,7 @@ export function BarChart({
         {data.map((d, i) => (
           <span key={`${d.label}-l-${i}`}
                 className="flex-1 text-center text-[10px] whitespace-nowrap"
-                style={{ color: "var(--app-ink-40, #8a8172)" }}>
+                style={{ color: "var(--chart-ink-dim)" }}>
             {i % labelEvery === 0 ? d.label : ""}
           </span>
         ))}
@@ -197,7 +197,7 @@ export function BarChart({
       {/* One direct label, on the extreme. Sparing on purpose: a number over
           every column is chaos and goes unread. */}
       {data[peakIndex]?.value > 0 && (
-        <p className="mt-1 text-[11px]" style={{ color: "var(--app-ink-45, #7b7365)" }}>
+        <p className="mt-1 text-[11px]" style={{ color: "var(--chart-ink)" }}>
           Peak {format(data[peakIndex].value)} · {data[peakIndex].full ?? data[peakIndex].label}
         </p>
       )}
@@ -293,7 +293,7 @@ export function LineChart({
       </div>
 
       <div className="flex justify-between text-[10px]"
-           style={{ color: "var(--app-ink-40, #8a8172)" }}>
+           style={{ color: "var(--chart-ink-dim)" }}>
         <span>{data[0]?.full ?? data[0]?.label}</span>
         {target != null && targetLabel && <span>{targetLabel}</span>}
         <span>{data.at(-1)?.full ?? data.at(-1)?.label}</span>
@@ -317,7 +317,7 @@ function TableToggle({
       aria-expanded={open}
       aria-controls={`${id}-table`}
       className="mt-2 text-[11px] font-semibold underline underline-offset-2"
-      style={{ color: "var(--app-ink-45, #7b7365)" }}
+      style={{ color: "var(--chart-ink-dim)" }}
     >
       {open ? "Hide the numbers" : "Show the numbers"}
     </button>
@@ -333,15 +333,15 @@ function ChartTable({
 }: { id: string; caption: string; data: Point[]; format: (n: number) => string }) {
   return (
     <div id={`${id}-table`} className="mt-2 max-h-48 overflow-auto rounded-md"
-         style={{ background: "var(--color-bg, rgb(255 255 255 / 0.03))" }}>
+         style={{ background: "var(--chart-grid)" }}>
       <table className="w-full text-[11.5px]">
         <caption className="sr-only">{caption}</caption>
         <tbody>
           {data.map((d, i) => (
             <tr key={i} className="border-b last:border-0"
-                style={{ borderColor: "var(--color-neutral-300, rgb(255 255 255 / 0.07))" }}>
+                style={{ borderColor: "var(--chart-grid)" }}>
               <th scope="row" className="px-2.5 py-1 text-left font-normal"
-                  style={{ color: "var(--app-ink-55, #6f6759)" }}>
+                  style={{ color: "var(--chart-ink)" }}>
                 {d.full ?? d.label}
               </th>
               <td className="px-2.5 py-1 text-right font-semibold tabular">

@@ -458,3 +458,36 @@
   --muscle-triceps: #b98ab0;
   --muscle-core: #6fb0a8;
 }
+
+/* ============================================================================
+   Chart text and chrome.
+
+   The charts render on both surfaces, and their labels were reaching for the
+   member app's ink tokens — which are near-white at low alpha. Those are
+   declared globally, so the fallbacks in the component never fired and every
+   axis label on the light admin cards was white on cream. Invisible.
+
+   So the surface declares what a chart's text should be, and the chart asks
+   for it by role rather than by colour. Values below are measured against
+   their own surface, not chosen by eye:
+
+     admin  #474238 on #ebddc5 = 7.45:1 · #645c50 on #ebddc5 = 4.92:1
+     member 78% on #231f19     = 8.3:1  · 60% on #231f19     = 6.2:1
+
+   neutral-600 is deliberately not used: it measures 3.21:1, which is fine for
+   large text and not for a 10px axis tick.
+   ========================================================================= */
+:root {
+  --chart-ink: #474238;
+  --chart-ink-dim: #645c50;
+  --chart-grid: #dcd3c4;
+  --chart-surface: #ebddc5;
+}
+
+/* The member app is the dark surface; .surface-app wraps every screen on it. */
+.surface-app {
+  --chart-ink: rgb(249 244 237 / 0.78);
+  --chart-ink-dim: rgb(249 244 237 / 0.60);
+  --chart-grid: rgb(249 244 237 / 0.12);
+  --chart-surface: #231f19;
+}
