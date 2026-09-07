@@ -42,6 +42,25 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
 
+    /* ── Android's share sheet ────────────────────────────────────────────
+       After paying in GPay or PhonePe, the member's next move is Share. This
+       puts Fitwell in that list, so the receipt goes straight into the app
+       instead of becoming a screenshot they have to find again and upload.
+
+       Installed apps only, and Android only — Web Share Target does not
+       exist on iOS Safari, where the ordinary upload button remains the
+       route. The POST is answered by the service worker rather than a server
+       route, so the file never leaves the phone until the member has picked
+       which plan they are paying for. */
+    share_target: {
+      action: "/m/share-payment",
+      method: "POST",
+      enctype: "multipart/form-data",
+      params: {
+        files: [{ name: "proof", accept: ["image/*"] }],
+      },
+    },
+
     /* Long-press the installed icon. Both are one tap from the home screen
        anyway; these save the member the navigation when they are standing at
        the door with the queue behind them. */

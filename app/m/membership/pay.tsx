@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { submitPaymentProof } from "@/lib/actions/payment-proof";
 import { Cta, ErrorNote, Hint, Label } from "@/components/ui/primitives";
 import { formatINR } from "@/lib/money";
@@ -62,6 +62,51 @@ export function PayFlow({
   );
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
   const [fileName, setFileName] = useState<string | null>(null);
+  const proofInput = useRef<HTMLInputElement>(null);
+  const [fromShare, setFromShare] = useState(false);
+
+  /* A receipt shared in from GPay or PhonePe.
+
+     Android's share sheet POSTs the file to the service worker, which stashes
+     it and redirects here with ?shared=1. Picking it up means putting a real
+     File into the file input, which is what DataTransfer is for — the form
+     then submits exactly as if the member had chosen it by hand, and the
+     server action needs to know nothing about any of this.
+
+     Chrome-only territory by definition: Web Share Target does not exist on
+     iOS, so nothing here ever runs there and the ordinary upload button
+     stays the route. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!new URLSearchParams(window.location.search).has("shared")) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const cache = await caches.open("fitwell-share");
+        const hit = await cache.match("/__shared-proof");
+        if (!hit || cancelled) return;
+
+        const blob = await hit.blob();
+        const name = decodeURIComponent(hit.headers.get("x-filename") ?? "receipt.jpg");
+        const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        if (proofInput.current) proofInput.current.files = dt.files;
+
+        setFileName(name);
+        setFromShare(true);
+
+        /* Taken, so it cannot be attached to a second payment later. */
+        await cache.delete("/__shared-proof");
+      } catch {
+        /* No cache, no permission, or a browser without DataTransfer. The
+           member simply chooses the file the usual way. */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   if (lastClaim?.status === "awaiting_verification") {
     return (
@@ -233,15 +278,21 @@ export function PayFlow({
           }}
         >
           <input
+            ref={proofInput}
             type="file"
             name="proof"
             accept="image/*"
             required
             className="hidden"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+            onChange={(e) => {
+              setFileName(e.target.files?.[0]?.name ?? null);
+              setFromShare(false);
+            }}
           />
           <span className="text-[0.855em]" style={{ color: "var(--app-ink-55)" }}>
-            {fileName ?? "Tap to choose the payment screenshot"}
+            {fromShare
+              ? `Shared from your UPI app — ${fileName}`
+              : fileName ?? "Tap to choose the payment screenshot"}
           </span>
         </label>
         <Hint>
