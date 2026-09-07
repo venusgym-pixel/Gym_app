@@ -16,10 +16,11 @@ import { useEffect } from "react";
        so it has to be re-acquired on visibilitychange or it only works until
        the first interruption.
 
-     - It needs a secure context, and it does not exist at all on iOS Safari
-       at the time of writing. Everything here is best-effort: a rejected
-       promise or a missing API is a normal outcome, not an error worth
-       showing anybody.
+     - It needs a secure context. iOS supports it from Safari 18.4, including
+       inside an installed home-screen app, where it was broken for years —
+       so an iPhone on an older version simply falls through. Everything here
+       is best-effort either way: a rejected promise or a missing API is a
+       normal outcome, not an error worth showing anybody.
    ========================================================================= */
 
 export function useWakeLock(active: boolean) {

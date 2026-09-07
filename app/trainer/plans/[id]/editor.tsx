@@ -311,19 +311,19 @@ function ItemRow({
         <input type="hidden" name="item_id" value={item.id} />
         <input type="hidden" name="plan_id" value={planId} />
         <TargetField label="Sets">
-          <input name="sets" type="number" min={1} max={20}
+          <input name="sets" type="number" inputMode="numeric" min={1} max={20}
                  defaultValue={item.sets} className={num} />
         </TargetField>
         <TargetField label="Reps">
-          <input name="target_reps" type="number" min={1} max={100}
+          <input name="target_reps" type="number" inputMode="numeric" min={1} max={100}
                  defaultValue={item.target_reps} className={num} />
         </TargetField>
         <TargetField label="Weight kg">
-          <input name="target_weight_kg" type="number" min={0} step="0.5"
+          <input name="target_weight_kg" type="number" inputMode="decimal" min={0} step="0.5"
                  defaultValue={item.target_weight_kg ?? ""} placeholder="—" className={num} />
         </TargetField>
         <TargetField label="Rest s">
-          <input name="rest_seconds" type="number" min={0} max={600} step={15}
+          <input name="rest_seconds" type="number" inputMode="numeric" min={0} max={600} step={15}
                  defaultValue={item.rest_seconds} className={num} />
         </TargetField>
         <TargetField label="Note" grow>

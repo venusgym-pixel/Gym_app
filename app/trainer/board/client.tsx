@@ -279,7 +279,7 @@ function Editor({
                 <label className="block">
                   <span className="mb-1 block text-[11px] text-neutral-600">Weight kg</span>
                   <Input
-                    type="number" step="0.5" min={0} max={1000}
+                    type="number" inputMode="decimal" step="0.5" min={0} max={1000}
                     value={it.target_weight_kg}
                     onChange={(e) => patch(i, { target_weight_kg: e.target.value })}
                     placeholder="—"
@@ -369,7 +369,7 @@ function Num({
   return (
     <label className="block">
       <span className="mb-1 block text-[11px] text-neutral-600">{label}</span>
-      <Input type="number" min={min} max={max} value={value}
+      <Input type="number" inputMode="numeric" min={min} max={max} value={value}
              onChange={(e) => onChange(Number(e.target.value))} />
     </label>
   );

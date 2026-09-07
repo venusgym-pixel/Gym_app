@@ -113,29 +113,6 @@ export function WorkoutLogger({ today }: { today: Today }) {
   /* Held for the whole session, not just while logging: warming up is when
      the phone has been face-down on a bench longest. */
   useWakeLock(phase === "logging" || phase === "warmup");
-  const wakeLock = useRef<{ release: () => Promise<void> } | null>(null);
-
-  /* Keep the screen on while logging. A phone that sleeps between sets means
-     unlocking with wet hands every ninety seconds. */
-  useEffect(() => {
-    if (phase !== "logging") return;
-    let released = false;
-
-    const nav = navigator as Navigator & {
-      wakeLock?: { request: (t: "screen") => Promise<{ release: () => Promise<void> }> };
-    };
-    nav.wakeLock?.request("screen").then(
-      (l) => { if (released) void l.release(); else wakeLock.current = l; },
-      () => { /* denied or unsupported — not worth telling the member */ },
-    );
-
-    return () => {
-      released = true;
-      void wakeLock.current?.release();
-      wakeLock.current = null;
-    };
-  }, [phase]);
-
   /* The updater clears the timer itself at 1, so the effect never calls
      setState synchronously on the way in — that would queue an extra render
      pass on every tick of the countdown. */

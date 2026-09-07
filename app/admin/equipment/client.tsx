@@ -61,7 +61,7 @@ export function EquipmentForm({
           <Input name="model" defaultValue={initial?.model ?? ""} />
         </Field>
         <Field label="Quantity" hint="How many the floor has — 3 treadmills is one row.">
-          <Input name="quantity" type="number" min={1} max={999}
+          <Input name="quantity" type="number" inputMode="numeric" min={1} max={999}
                  defaultValue={initial?.quantity ?? 1} />
         </Field>
         <Field label="Status">

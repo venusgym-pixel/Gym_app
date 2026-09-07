@@ -106,7 +106,7 @@ export function PlanEditor({
           </div>
           <Input
             name="duration_days"
-            type="number"
+            type="number" inputMode="numeric"
             min={1}
             max={3650}
             required
@@ -121,7 +121,7 @@ export function PlanEditor({
         <Field label="Price, excluding GST" required hint="Whole rupees.">
           <Input
             name="price_rupees"
-            type="number"
+            type="number" inputMode="numeric"
             min={0}
             step={1}
             required
@@ -148,24 +148,24 @@ export function PlanEditor({
         </Field>
 
         <Field label="Joining fee" hint="One-off, on the first term. 0 for none.">
-          <Input name="joining_fee_rupees" type="number" min={0} step={1}
+          <Input name="joining_fee_rupees" type="number" inputMode="numeric" min={0} step={1}
                  defaultValue={plan ? paiseToRupees(plan.joining_fee_paise) : 0} />
         </Field>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="PT sessions included" hint="0 for a gym-only plan.">
-          <Input name="pt_sessions" type="number" min={0} max={365}
+          <Input name="pt_sessions" type="number" inputMode="numeric" min={0} max={365}
                  defaultValue={plan?.pt_sessions ?? 0} />
         </Field>
 
         <Field label="Freeze days allowed" hint="Days a member may pause for.">
-          <Input name="freeze_days_allowed" type="number" min={0} max={365}
+          <Input name="freeze_days_allowed" type="number" inputMode="numeric" min={0} max={365}
                  defaultValue={plan?.freeze_days_allowed ?? 0} />
         </Field>
 
         <Field label="Sort order" hint="Lower shows first.">
-          <Input name="sort_order" type="number" min={0} max={999}
+          <Input name="sort_order" type="number" inputMode="numeric" min={0} max={999}
                  defaultValue={plan?.sort_order ?? 0} />
         </Field>
       </div>
