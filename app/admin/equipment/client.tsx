@@ -4,7 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import {
   deleteEquipment, retireEquipment, saveEquipment, seedEquipment, setEquipmentStatus,
 } from "@/lib/actions/equipment";
-import { Feedback, Field, Input, Select, Submit, SelectOrOther } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, SelectOrOther, MediaField } from "@/components/admin/forms";
 import type { ActionResult } from "@/lib/actions/members";
 import type { Equipment, EquipmentStatus } from "@/lib/db/database.types";
 
@@ -76,9 +76,13 @@ export function EquipmentForm({
         <Field label="Purchased on">
           <Input name="purchased_on" type="date" defaultValue={initial?.purchased_on ?? ""} />
         </Field>
-        <Field label="Photo URL" hint="A link for now — paste from your drive or the vendor page.">
-          <Input name="photo_url" type="url" defaultValue={initial?.photo_url ?? ""}
-                 placeholder="https://…" />
+        <Field label="Photo" hint="Paste a link, or take one on the phone in your hand.">
+          <MediaField
+            name="photo_url"
+            module="equipment"
+            defaultValue={initial?.photo_url ?? ""}
+            accept="image/*"
+          />
         </Field>
       </div>
 

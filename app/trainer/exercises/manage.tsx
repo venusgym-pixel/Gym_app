@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { deactivateExercise, deleteExercise, saveExercise } from "@/lib/actions/exercises";
 import { DIFFICULTIES, EQUIPMENT_KINDS, MUSCLES } from "@/lib/exercise-vocab";
-import { Feedback, Field, Input, Select, Submit, SelectOrOther } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, SelectOrOther, MediaField } from "@/components/admin/forms";
 import type { ActionResult } from "@/lib/actions/members";
 
 /* ============================================================================
@@ -106,9 +106,17 @@ export function ExerciseForm({
       <Field label="Common mistakes">
         <Input name="common_mistakes" defaultValue={initial?.common_mistakes ?? ""} />
       </Field>
-      <Field label="Video URL" hint="YouTube or any demo link.">
-        <Input name="video_url" type="url" defaultValue={initial?.video_url ?? ""}
-               placeholder="https://…" />
+      <Field
+        label="Demonstration"
+        hint="A YouTube link is best for anything long. Upload only short clips — over 5MB will not go."
+      >
+        <MediaField
+          name="video_url"
+          module="exercises"
+          defaultValue={initial?.video_url ?? ""}
+          accept="video/*,image/*"
+          placeholder="https://youtu.be/…"
+        />
       </Field>
 
       <Feedback state={state} />

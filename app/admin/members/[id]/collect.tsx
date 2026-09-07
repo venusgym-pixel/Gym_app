@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { recordPayment, manualCheckIn, type ActionResult } from "@/lib/actions/members";
-import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, FilePicker } from "@/components/admin/forms";
 import { formatINR, gstSplit } from "@/lib/money";
 
 /* ============================================================================
@@ -84,12 +84,11 @@ export function CollectPayment({
       >
         {/* capture="environment" opens the rear camera straight away on a
             phone, which is what reception is holding. */}
-        <input
-          type="file"
+        <FilePicker
           name="receipt"
           accept="image/*"
           capture="environment"
-          className="w-full text-[13px]"
+          hint="No photo taken"
         />
       </Field>
 

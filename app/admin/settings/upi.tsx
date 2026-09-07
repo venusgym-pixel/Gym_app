@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import jsQR from "jsqr";
 import { vpaFromUpiPayload } from "@/lib/upi";
 import { saveUpiDetails } from "@/lib/actions/payment-proof";
-import { Feedback, Field, Input, Submit } from "@/components/admin/forms";
+import { Feedback, Field, Input, Submit, FilePicker } from "@/components/admin/forms";
 
 /* ============================================================================
    A-44 · The UPI code members pay to.
@@ -89,16 +89,14 @@ export function UpiSetup({
         label={qrUrl ? "Replace the QR image" : "UPI QR image"}
         hint="A photo or screenshot of the code from your bank or payment app. Under 5MB."
       >
-        <input
-          type="file"
+        <FilePicker
           name="qr"
           accept="image/*"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
+          hint="No image chosen"
+          onPick={(f) => {
             setPreview(f ? URL.createObjectURL(f) : null);
             if (f) void readCode(f);
           }}
-          className="w-full text-[13px]"
         />
       </Field>
 

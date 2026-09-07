@@ -163,3 +163,125 @@ export function SelectOrOther({
    answer for gender, and would otherwise switch the control into typing mode
    every time someone chose it. */
 const OTHER = "__other__";
+
+/* ============================================================================
+   A file input that looks like a control.
+
+   A bare <input type="file"> renders as the browser's own "Choose File / No
+   file chosen" — system text at a system size, in a form where everything
+   else is a styled field. It reads as a caption rather than something to
+   press, which is exactly how an upload gets missed.
+
+   The native input is still the input; it is only moved out of sight, so
+   the label, keyboard focus and form submission all behave normally.
+   ========================================================================= */
+export function FilePicker({
+  name, accept, capture, required, onPick, hint,
+}: {
+  name: string;
+  accept?: string;
+  /** "environment" opens the rear camera directly — what reception is holding. */
+  capture?: "environment" | "user";
+  required?: boolean;
+  onPick?: (file: File | null) => void;
+  hint?: string;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+
+  return (
+    <label className="flex cursor-pointer items-center gap-3">
+      <input
+        type="file"
+        name={name}
+        accept={accept}
+        capture={capture}
+        required={required}
+        className="sr-only"
+        onChange={(e) => {
+          const f = e.target.files?.[0] ?? null;
+          setPicked(f?.name ?? null);
+          onPick?.(f);
+        }}
+      />
+      <span className="shrink-0 rounded-pill border border-neutral-300 bg-bg px-4 py-2 text-[12.5px] font-semibold text-neutral-800">
+        {picked ? "Choose another" : "Choose a file"}
+      </span>
+      <span className="min-w-0 flex-1 truncate text-[12px] text-neutral-600">
+        {picked ?? hint ?? "No file chosen"}
+      </span>
+    </label>
+  );
+}
+
+/* ============================================================================
+   A URL, or a file from the device.
+
+   Both, side by side, because they answer different questions. A YouTube link
+   is right for a three-minute demonstration and this app should not be
+   storing that. A photo of the leg press is on the phone in someone's hand,
+   and asking them to host it somewhere first is asking them not to bother.
+
+   Uploading fills the URL box, so there is one value and one field name no
+   matter which route was taken.
+   ========================================================================= */
+export function MediaField({
+  name, module, defaultValue = "", accept = "image/*", placeholder,
+}: {
+  name: string;
+  /** What the file belongs to; the action checks you may edit it. */
+  module: "exercises" | "equipment" | "settings";
+  defaultValue?: string;
+  accept?: string;
+  placeholder?: string;
+}) {
+  const [url, setUrl] = useState(defaultValue);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File | null) {
+    if (!file) return;
+    setBusy(true); setError(null);
+    const body = new FormData();
+    body.set("file", file);
+    body.set("module", module);
+    const { uploadPublicAsset } = await import("@/lib/actions/media");
+    const r = await uploadPublicAsset(body);
+    if (r.ok && r.url) setUrl(r.url); else setError(r.error ?? "Upload failed.");
+    setBusy(false);
+  }
+
+  return (
+    <div className="space-y-2">
+      <Input
+        name={name}
+        type="url"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        placeholder={placeholder ?? "https://…"}
+      />
+
+      <div className="flex items-center gap-3">
+        <label className="cursor-pointer">
+          <input type="file" accept={accept} className="sr-only"
+                 onChange={(e) => void upload(e.target.files?.[0] ?? null)} />
+          <span className="inline-block rounded-pill border border-neutral-300 bg-bg px-4 py-2 text-[12.5px] font-semibold text-neutral-800">
+            {busy ? "Uploading…" : "Upload from device"}
+          </span>
+        </label>
+        {url && !busy && (
+          <button type="button" onClick={() => setUrl("")}
+                  className="text-[12px] font-semibold text-accent-700 underline">
+            Remove
+          </button>
+        )}
+      </div>
+
+      {error && <p className="text-[12px] text-accent-800">{error}</p>}
+
+      {url && /\.(jpe?g|png|webp|gif)(\?|$)/i.test(url) && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={url} alt="" className="h-20 rounded-md border border-neutral-300" />
+      )}
+    </div>
+  );
+}

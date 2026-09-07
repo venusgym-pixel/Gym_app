@@ -122,8 +122,8 @@ export function WarmUp({
       <button
         type="button"
         onClick={onDone}
-        className="mt-4 w-full text-center text-[0.822em] font-semibold"
-        style={{ color: "var(--app-ink-45)" }}
+        className="mt-4 w-full rounded-pill py-2.5 text-center text-[0.822em] font-semibold"
+        style={{ color: "var(--app-ink-55)", border: "1px solid var(--app-border)" }}
       >
         Skip warm-up
       </button>

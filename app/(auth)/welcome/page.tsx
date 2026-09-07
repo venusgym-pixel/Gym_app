@@ -46,8 +46,8 @@ export default function WelcomePage() {
       <button
         type="button"
         onClick={() => router.replace("/profile")}
-        className="self-end text-[13px]"
-        style={{ color: "var(--app-ink-50)" }}
+        className="self-end rounded-pill px-3.5 py-1.5 text-[0.822em] font-semibold"
+        style={{ color: "var(--app-ink-55)", border: "1px solid var(--app-border)" }}
       >
         Skip
       </button>
