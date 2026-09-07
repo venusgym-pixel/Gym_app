@@ -6,7 +6,6 @@ import { createServerDb, requireActor } from "@/lib/db/server";
 import { can } from "@/lib/auth/permissions";
 import type { GymRole } from "@/lib/db/database.types";
 import type { ActionResult } from "./members";
-import { EQUIPMENT_KINDS, MUSCLES } from "@/lib/exercise-vocab";
 
 /* ============================================================================
    T-14 · Extend the exercise library.
@@ -21,9 +20,13 @@ import { EQUIPMENT_KINDS, MUSCLES } from "@/lib/exercise-vocab";
 const Save = z.object({
   id: z.uuid().optional(),
   name: z.string().trim().min(2).max(80),
-  primary_muscle: z.enum(MUSCLES),
+  /* Free text, not z.enum(MUSCLES): the column has no constraint and the
+     form now lets a trainer type a group nobody listed — Forearms, Calves,
+     Neck. Validating against the list here would reject exactly the values
+     the Other box exists to allow. Length still capped. */
+  primary_muscle: z.string().trim().min(2).max(40),
   secondary_muscles: z.string().trim().max(200).optional(),
-  equipment: z.enum(EQUIPMENT_KINDS),
+  equipment: z.string().trim().min(2).max(40),
   equipment_id: z.union([z.uuid(), z.literal("")]).optional(),
   difficulty: z.enum(["beginner", "intermediate", "advanced"]),
   instructions: z.string().trim().max(1000).optional(),

@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { deactivateExercise, deleteExercise, saveExercise } from "@/lib/actions/exercises";
 import { DIFFICULTIES, EQUIPMENT_KINDS, MUSCLES } from "@/lib/exercise-vocab";
-import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, SelectOrOther } from "@/components/admin/forms";
 import type { ActionResult } from "@/lib/actions/members";
 
 /* ============================================================================
@@ -60,14 +60,22 @@ export function ExerciseForm({
                  placeholder="Landmine press" />
         </Field>
         <Field label="Primary muscle" required>
-          <Select name="primary_muscle" defaultValue={initial?.primary_muscle ?? "Chest"}>
-            {MUSCLES.map((m) => <option key={m} value={m}>{m}</option>)}
-          </Select>
+          <SelectOrOther
+            name="primary_muscle"
+            options={MUSCLES}
+            defaultValue={initial?.primary_muscle ?? "Chest"}
+            placeholder="e.g. Forearms, Calves, Neck"
+            required
+          />
         </Field>
         <Field label="Equipment type" required>
-          <Select name="equipment" defaultValue={initial?.equipment ?? "Barbell"}>
-            {EQUIPMENT_KINDS.map((e) => <option key={e} value={e}>{e}</option>)}
-          </Select>
+          <SelectOrOther
+            name="equipment"
+            options={EQUIPMENT_KINDS}
+            defaultValue={initial?.equipment ?? "Barbell"}
+            placeholder="e.g. Kettlebell, Sled, Rings"
+            required
+          />
         </Field>
         <Field label="Specific machine" hint="Optional — flags the exercise when that machine is down.">
           <Select name="equipment_id" defaultValue={initial?.equipment_id ?? ""}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useState } from "react";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 /* ============================================================================
@@ -83,3 +84,82 @@ export function Feedback({
     </p>
   );
 }
+
+/* ============================================================================
+   A dropdown that does not trap you in its own vocabulary.
+
+   Picks the listed option, or "Other…" and then types. Only one field is ever
+   submitted under `name` — a hidden input while a listed option is chosen, the
+   text box itself once it is not — so the action sees a plain string either
+   way and needs no second field to reconcile.
+
+   Only for columns that genuinely accept any text. A select over a Postgres
+   enum or a CHECK constraint must NOT use this: the typed value would pass
+   the form, fail at the database, and reach the user as "could not save".
+   Foreign-key pickers likewise — "other" there means creating a record, which
+   is a different screen, not a text box.
+
+   Editing is the case that catches people out: a row already holding a value
+   nobody listed has to open in Other mode with that value in the box, or the
+   first save silently rewrites it to whichever option happened to be first.
+   ========================================================================= */
+export function SelectOrOther({
+  name,
+  options,
+  defaultValue = "",
+  placeholder,
+  includeBlank,
+  blankLabel = "Not specified",
+  required,
+}: {
+  name: string;
+  options: readonly string[];
+  defaultValue?: string;
+  placeholder?: string;
+  /** Allow "no answer" as distinct from a typed one. */
+  includeBlank?: boolean;
+  blankLabel?: string;
+  required?: boolean;
+}) {
+  const listed = defaultValue === "" || options.includes(defaultValue);
+  const [choice, setChoice] = useState(listed ? defaultValue : OTHER);
+  const [typed, setTyped] = useState(listed ? "" : defaultValue);
+
+  const isOther = choice === OTHER;
+
+  return (
+    <div className="space-y-2">
+      <Select
+        value={choice}
+        onChange={(e) => setChoice(e.target.value)}
+        required={required && !isOther}
+        aria-label={isOther ? undefined : name}
+      >
+        {includeBlank && <option value="">{blankLabel}</option>}
+        {options.map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+        <option value={OTHER}>Other…</option>
+      </Select>
+
+      {isOther ? (
+        <Input
+          name={name}
+          value={typed}
+          onChange={(e) => setTyped(e.target.value)}
+          placeholder={placeholder ?? "Type it"}
+          required={required}
+          autoFocus
+          maxLength={40}
+        />
+      ) : (
+        <input type="hidden" name={name} value={choice} />
+      )}
+    </div>
+  );
+}
+
+/* A value no real option could collide with — "Other" itself is a legitimate
+   answer for gender, and would otherwise switch the control into typing mode
+   every time someone chose it. */
+const OTHER = "__other__";

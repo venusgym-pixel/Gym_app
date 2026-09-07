@@ -15,15 +15,15 @@ import type { ActionResult } from "./members";
    day-to-day; everything else is a record the owner fills in once.
    ========================================================================= */
 
-const CATEGORIES = [
-  "machine", "free_weight", "cable", "cardio", "bench_rack", "accessory",
-] as const;
 const STATUSES = ["working", "maintenance", "out_of_order"] as const;
 
 const Save = z.object({
   id: z.uuid().optional(),
   name: z.string().trim().min(2).max(80),
-  category: z.enum(CATEGORIES),
+  /* Free label now, matching the widened CHECK. The form still offers the
+     six as the obvious answers; a gym with a sled or a turf lane is no
+     longer forced to file it under "accessory". */
+  category: z.string().trim().min(2).max(40),
   brand: z.string().trim().max(80).optional(),
   model: z.string().trim().max(80).optional(),
   quantity: z.coerce.number().int().min(1).max(999).default(1),

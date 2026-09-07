@@ -4,7 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import {
   deleteEquipment, retireEquipment, saveEquipment, seedEquipment, setEquipmentStatus,
 } from "@/lib/actions/equipment";
-import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, SelectOrOther } from "@/components/admin/forms";
 import type { ActionResult } from "@/lib/actions/members";
 import type { Equipment, EquipmentStatus } from "@/lib/db/database.types";
 
@@ -48,11 +48,13 @@ export function EquipmentForm({
                  placeholder="Leg press machine" />
         </Field>
         <Field label="Category" required>
-          <Select name="category" defaultValue={initial?.category ?? "machine"}>
-            {CATEGORY_OPTIONS.map(([v, label]) => (
-              <option key={v} value={v}>{label}</option>
-            ))}
-          </Select>
+          <SelectOrOther
+            name="category"
+            options={CATEGORY_OPTIONS.map(([v]) => v)}
+            defaultValue={initial?.category ?? "machine"}
+            placeholder="e.g. sled, turf, boxing"
+            required
+          />
         </Field>
         <Field label="Brand">
           <Input name="brand" defaultValue={initial?.brand ?? ""} placeholder="Being Strong" />

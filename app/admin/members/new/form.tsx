@@ -3,7 +3,7 @@
 import { useActionState, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createMember, type ActionResult } from "@/lib/actions/members";
-import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
+import { Feedback, Field, Input, Select, Submit, SelectOrOther } from "@/components/admin/forms";
 
 /* ============================================================================
    A-10 · Add member.
@@ -65,10 +65,15 @@ export function NewMemberForm() {
                  max={new Date().toISOString().slice(0, 10)} />
         </Field>
         <Field label="Gender">
-          <Select name="gender" defaultValue="">
-            <option value="">Not specified</option>
-            <option>Male</option><option>Female</option><option>Other</option>
-          </Select>
+          {/* Self-describe rather than a fixed third option. The column is
+              plain text, so there is no reason to make someone pick a label
+              that is not theirs. */}
+          <SelectOrOther
+            name="gender"
+            options={["Male", "Female"]}
+            includeBlank
+            placeholder="Type it"
+          />
         </Field>
         <div />
         <Field label="Emergency contact">
