@@ -202,7 +202,18 @@ export default async function MembershipPage() {
             Renew
           </h2>
           <PayFlow
-            plans={(plans ?? []) as { id: string; name: string; price_paise: string; duration_days: number }[]}
+            plans={((plans ?? []) as Plan[]).map((p) => ({
+              id: p.id,
+              name: p.name,
+              duration_days: p.duration_days,
+              /* The one figure this screen may show: what the member is about
+                 to send. Worked out here, from the same split as the list
+                 above, so the price they are quoted and the price they are
+                 asked to pay cannot come apart. */
+              amountPaise: String(
+                gstSplit(Number(p.price_paise), { enabled: gst }).totalPaise,
+              ),
+            }))}
             upiQrUrl={upiQrUrl}
             upiVpa={gymPay?.upi_vpa ?? null}
             gymName={gymPay?.name ?? "your gym"}

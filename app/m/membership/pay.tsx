@@ -22,7 +22,11 @@ import type { ActionResult } from "@/lib/actions/members";
 interface Plan {
   id: string;
   name: string;
-  price_paise: string;
+  /** What the member sends: the plan price plus whatever tax the gym charges,
+   *  which is nothing at all when the gym is not registered. Worked out on
+   *  the server, because it is also the amount the payment row will hold and
+   *  the amount reception matches against their bank. */
+  amountPaise: string;
   duration_days: number;
 }
 
@@ -145,7 +149,7 @@ export function PayFlow({
     ? buildUpiLink({
         vpa: upiVpa,
         payeeName: gymName,
-        amountPaise: plan?.price_paise,
+        amountPaise: plan?.amountPaise,
         note: plan ? `${plan.name} membership` : null,
       })
     : null;
@@ -194,7 +198,7 @@ export function PayFlow({
               />
               <span className="flex-1 text-[0.921em] font-semibold">{p.name}</span>
               <span className="text-[0.921em] font-bold text-app-accent">
-                {formatINR(p.price_paise)}
+                {formatINR(p.amountPaise)}
               </span>
             </label>
           ))}
@@ -209,7 +213,7 @@ export function PayFlow({
         >
           <p className="text-[0.789em] tracking-[0.08em] uppercase"
              style={{ color: "var(--app-ink-55)" }}>
-            Pay {plan ? formatINR(plan.price_paise) : ""} to
+            Pay {plan ? formatINR(plan.amountPaise) : ""} to
           </p>
 
           {upiQrUrl && (
@@ -238,7 +242,7 @@ export function PayFlow({
               href={upiLink}
               className="mt-4 block w-full rounded-pill bg-app-accent py-3.5 text-center text-[0.987em] font-bold text-app-accent-ink"
             >
-              Pay {plan ? formatINR(plan.price_paise) : ""} in your UPI app
+              Pay {plan ? formatINR(plan.amountPaise) : ""} in your UPI app
             </a>
           )}
 

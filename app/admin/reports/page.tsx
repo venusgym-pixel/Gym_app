@@ -44,6 +44,11 @@ export default async function ReportsPage({
   const params = await searchParams;
   const months = [3, 6, 12].includes(Number(params.months)) ? Number(params.months) : 6;
 
+  /* Every figure on this page sums payment rows, and a payment row is the
+     money that arrived — so with GST on these totals include the tax the gym
+     has to remit onward, which is the difference between a revenue number and
+     a bank balance. The subtitle says so. With GST off the two are the same
+     number and there is nothing to explain. */
   const [{ data: summary }, gst] = await Promise.all([
     db.rpc("reports_summary", { p_gym_id: actor.gymId, p_months: months }),
     gstEnabled(),
@@ -86,7 +91,7 @@ export default async function ReportsPage({
       <PageHeader
         eyebrow="Reports"
         title="How the gym is doing"
-        sub={`Since ${formatDate(s.from)}.${gst ? " Amounts exclude GST." : ""}`}
+        sub={`Since ${formatDate(s.from)}.${gst ? " Amounts are cash collected, GST included." : ""}`}
         actions={
           <div className="flex gap-1 rounded-pill bg-neutral-200 p-1">
             {[3, 6, 12].map((m) => (

@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { VerifyQueue, type PendingClaim } from "./verify";
+import { gstEnabled } from "@/lib/tax";
+import { gstSplit } from "@/lib/money";
 import { formatDate, formatINR, formatINRCompact } from "@/lib/money";
 
 /* ============================================================================
@@ -36,7 +38,7 @@ export default async function PaymentsPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: payments }, { data: invoices }, { data: claims }, { data: plans }] =
+  const [{ data: payments }, { data: invoices }, { data: claims }, { data: plans }, gst] =
     await Promise.all([
     db
       .from("payments")
@@ -63,6 +65,7 @@ export default async function PaymentsPage() {
       .select("id, name, price_paise, duration_days")
       .eq("gym_id", actor.gymId)
       .order("sort_order"),
+    gstEnabled(),
   ]);
 
   const rows = (payments ?? []) as unknown as Row[];
@@ -80,9 +83,17 @@ export default async function PaymentsPage() {
     members: { full_name: string; member_code: string } | null;
   }[];
 
-  const planRows = (plans ?? []) as {
+  /* Every price this screen shows is the cash figure, because every number it
+     is compared against — the claim, the bank statement, the screenshot — is
+     cash. The ex-GST price stays on the row for the invoice to use. */
+  const planRows = ((plans ?? []) as {
     id: string; name: string; price_paise: string; duration_days: number;
-  }[];
+  }[]).map((p) => ({
+    ...p,
+    gross_paise: String(
+      gstSplit(Number(p.price_paise), { enabled: gst }).totalPaise,
+    ),
+  }));
 
   /* Signed on the server, valid five minutes. The bucket is private because
      a payment screenshot carries a name, an amount and usually a bank — so
@@ -101,7 +112,7 @@ export default async function PaymentsPage() {
             .data?.signedUrl ?? null
         : null,
       suggestedPlanId:
-        planRows.find((p) => p.price_paise === c.amount_paise)?.id ?? null,
+        planRows.find((p) => p.gross_paise === c.amount_paise)?.id ?? null,
     })),
   );
 

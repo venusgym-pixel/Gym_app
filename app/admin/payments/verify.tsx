@@ -25,7 +25,12 @@ import { formatINR } from "@/lib/money";
 interface Plan {
   id: string;
   name: string;
+  /** Ex-GST. Kept for the invoice, never shown — the desk works in cash. */
   price_paise: string;
+  /** What the member actually hands over, tax included. Computed on the
+   *  server from the gym's own setting so this screen and the row the
+   *  database writes can never quote different figures. */
+  gross_paise: string;
   duration_days: number;
 }
 
@@ -81,8 +86,8 @@ function ClaimCard({ claim, plans }: { claim: PendingClaim; plans: Plan[] }) {
   /* The figure that will actually be recorded and invoiced, which follows the
      select rather than the claim. Showing it live is the whole point: it is
      what reception is attesting to. */
-  const willRecord = plan?.price_paise ?? claim.amountPaise;
-  const mismatch = plan != null && plan.price_paise !== claim.amountPaise;
+  const willRecord = plan?.gross_paise ?? claim.amountPaise;
+  const mismatch = plan != null && plan.gross_paise !== claim.amountPaise;
 
   function run(
     fn: (f: FormData) => Promise<{ ok: boolean; message?: string; error?: string }>,
@@ -177,7 +182,7 @@ function ClaimCard({ claim, plans }: { claim: PendingClaim; plans: Plan[] }) {
             >
               {plans.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {formatINR(p.price_paise)}
+                  {p.name} — {formatINR(p.gross_paise)}
                 </option>
               ))}
             </select>

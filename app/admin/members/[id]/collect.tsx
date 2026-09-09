@@ -8,8 +8,9 @@ import { formatINR, gstSplit } from "@/lib/money";
 /* ============================================================================
    A-15 · Assign or renew a membership, and take the money.
 
-   The total is shown before the button is pressed, including GST and the
-   resulting expiry date. docs/end-to-end-flow.md §2.5 makes this a rule:
+   The total is shown before the button is pressed — with the tax line when
+   the gym charges one, and the resulting expiry date either way. That total
+   is what goes in the till and what the payment row records. docs/end-to-end-flow.md §2.5 makes this a rule:
    renewing early extends from the existing expiry, renewing late starts from
    today, and the member must see which one they are getting BEFORE paying.
    ========================================================================= */

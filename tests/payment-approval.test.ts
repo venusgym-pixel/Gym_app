@@ -184,3 +184,45 @@ describe("money taken at the desk is unaffected", () => {
     expect(res.invoice_id).toBeTruthy();
   });
 });
+
+/* ============================================================================
+   The amount is the money, in both tax states.
+
+   This is the invariant reception's one human check depends on. They are asked
+   "I found ₹X in the gym's account" — so X has to be the figure the bank
+   shows, which is the plan price plus whatever tax the gym charges.
+   ========================================================================= */
+describe("what a payment row says was paid", () => {
+  it("is the plan price plus GST for a registered gym", async () => {
+    const id = await claim();
+    const [pay] = await db.sql<{ amount_paise: string }>(
+      `select amount_paise from payments where id = $1`, [id]);
+    expect(Number(pay.amount_paise)).toBe(1_003_000);   // ₹8,500 + 18%
+
+    await db.as(owner(), `select * from approve_payment($1, $2)`, [id, gym.planId]);
+
+    /* Approval must not move it. The claim and the invoice are the same
+       money, so a member who is told one figure and invoiced another has
+       been given two different receipts for one payment. */
+    const [after] = await db.sql<{ amount_paise: string }>(
+      `select amount_paise from payments where id = $1`, [id]);
+    const [inv] = await db.sql<{ total_paise: string; taxable_paise: string }>(
+      `select total_paise, taxable_paise from invoices where payment_id = $1`, [id]);
+    expect(Number(after.amount_paise)).toBe(Number(inv.total_paise));
+    expect(Number(inv.taxable_paise)).toBe(850_000);    // net is still on the invoice
+  });
+
+  it("is exactly the plan price when the gym is not registered", async () => {
+    await db.sql(`update gyms set gst_enabled = false where id = $1`, [gym.gymId]);
+
+    const id = await claim();
+    const [pay] = await db.sql<{ amount_paise: string }>(
+      `select amount_paise from payments where id = $1`, [id]);
+    expect(Number(pay.amount_paise)).toBe(850_000);
+
+    await db.as(owner(), `select * from approve_payment($1, $2)`, [id, gym.planId]);
+    const [inv] = await db.sql<{ total_paise: string }>(
+      `select total_paise from invoices where payment_id = $1`, [id]);
+    expect(Number(inv.total_paise)).toBe(850_000);
+  });
+});

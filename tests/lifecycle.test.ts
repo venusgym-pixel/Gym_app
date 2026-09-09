@@ -169,12 +169,17 @@ describe("the full loop", () => {
     expect(ok.outcome).toBe("ok");
 
     /* ── 9. the owner sees the revenue ────────────────────────────────────── */
-    const [rev] = await db.sql<{ collected: string; invoices: string }>(
+    const [rev] = await db.sql<{ collected: string; invoices: string; billed: string }>(
       `select coalesce(sum(p.amount_paise),0) collected,
-              (select count(*) from invoices where gym_id = $1) invoices
+              (select count(*) from invoices where gym_id = $1) invoices,
+              (select coalesce(sum(total_paise),0) from invoices where gym_id = $1) billed
          from payments p where p.gym_id = $1 and p.status = 'paid'`,
       [gym.gymId]);
-    expect(Number(rev.collected)).toBe(1_700_000);  // two × ₹8,500
+    /* Two terms at ₹8,500 + 18%. A payment row is the money that arrived, so
+       it has to equal what the invoices say was charged — the two coming
+       apart is what made reception reconcile against the wrong figure. */
+    expect(Number(rev.collected)).toBe(2_006_000);  // two × ₹10,030
+    expect(Number(rev.collected)).toBe(Number(rev.billed));
     expect(Number(rev.invoices)).toBe(2);
   });
 });

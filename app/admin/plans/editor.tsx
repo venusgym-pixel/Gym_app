@@ -8,11 +8,15 @@ import { formatINR, gstSplit, paiseToRupees } from "@/lib/money";
 /* ============================================================================
    A-14 · Create and edit a membership plan.
 
-   The price field carries a live GST line under it, because the number the
-   owner types is not the number the member pays. Prices are quoted ex-GST
-   throughout this product and 18% is added at checkout; typing 3200 and
-   discovering later that members were charged 3776 is the kind of surprise
-   that ends in a refund conversation.
+   At a registered gym the price field carries a live GST line under it,
+   because the number the owner types is not the number the member pays:
+   typing 3200 and discovering later that members were charged 3776 is the
+   kind of surprise that ends in a refund conversation.
+
+   With GST switched off in Settings the two are the same number, so the line
+   goes and the label stops promising a tax that is never added. Showing
+   "excluding GST" to a gym that does not charge it is how an owner ends up
+   quoting a price they never meant.
 
    Length is offered as four presets plus a free field. Everyone sells monthly,
    quarterly, half-yearly and annual — but "45-day summer offer" is a real
