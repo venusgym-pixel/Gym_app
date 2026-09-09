@@ -57,7 +57,16 @@ export async function saveGymSettings(
   const v = parsed.data;
 
   const db = await createServerDb();
-  const { error } = await db
+
+  /* .select() on the update, deliberately.
+
+     An UPDATE that row-level security refuses does not fail — it matches zero
+     rows and comes back clean, so a screen that only checks `error` reports
+     "Saved." over a database that changed nothing. That is not hypothetical
+     here: it is exactly how the QR upload appeared to work while doing
+     nothing. Asking for the row back means this can only claim to have saved
+     something it can read back. */
+  const { data, error } = await db
     .from("gyms")
     .update({
       name: v.name,
@@ -69,15 +78,34 @@ export async function saveGymSettings(
       reminder_hour: v.reminder_hour,
       updated_at: new Date().toISOString(),
     })
-    .eq("id", actor.gymId);
+    .eq("id", actor.gymId)
+    .select("gst_enabled")
+    .maybeSingle();
 
   if (error) return { ok: false, error: "Could not save. Try again." };
+  if (!data) {
+    return {
+      ok: false,
+      error:
+        "The database would not accept that change. Sign out and back in, then try again — if it keeps happening your account may have lost the settings permission.",
+    };
+  }
 
-  revalidatePath("/admin/settings");
-  revalidatePath("/admin");
-  /* Turning tax off changes the price on every screen that quotes one, and
-     those are cached separately from this page. */
-  revalidatePath("/admin/plans");
+  const saved = (data as { gst_enabled: boolean }).gst_enabled;
+
+  /* The whole admin tree, not three named routes. Tax now decides copy and
+     figures on plans, the desk, payments, reports and the member app, and a
+     list of paths is a thing that goes stale the next time one is added. */
+  revalidatePath("/admin", "layout");
   revalidatePath("/m/membership");
-  return { ok: true, message: "Saved." };
+
+  /* Says what is now true rather than that something happened. This is a
+     money setting, and "Saved." next to a box that still looks ticked is how
+     an owner ends up unsure which way round it is. */
+  return {
+    ok: true,
+    message: saved
+      ? "Saved. GST is on — 18% is added to every plan price."
+      : "Saved. GST is off — plan prices are now the final price.",
+  };
 }

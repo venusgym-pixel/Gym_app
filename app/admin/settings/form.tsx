@@ -21,10 +21,23 @@ export function GymSettingsForm({
   };
 }) {
   const [state, action] = useActionState(saveGymSettings, null);
+
   /* The only controlled field here, because the GSTIN below it stops being
      relevant the moment this is unticked and saying so in place beats leaving
-     a field that now does nothing. */
+     a field that now does nothing.
+
+     It also has to follow the server. A plain useState seeds once and then
+     keeps whatever was last clicked, so a save that did not land leaves the
+     box unticked over a database that still says yes — the screen showing one
+     answer while every price on the product shows the other. Re-seeding
+     whenever the saved value changes means this box always reports what is
+     actually stored. */
   const [gst, setGst] = useState(gym.gst_enabled);
+  const [savedGst, setSavedGst] = useState(gym.gst_enabled);
+  if (savedGst !== gym.gst_enabled) {
+    setSavedGst(gym.gst_enabled);
+    setGst(gym.gst_enabled);
+  }
 
   return (
     <form action={action} className="space-y-4">
