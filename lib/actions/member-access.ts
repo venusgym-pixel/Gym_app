@@ -45,13 +45,18 @@ export async function issueClaimCode(memberId: string): Promise<ActionResult> {
 
   /* Any earlier unused code stops working. Two live codes for one member
      means the one reception is reading aloud might not be the one that
-     works, which is impossible to debug from behind the counter. */
+     works, which is impossible to debug from behind the counter.
+
+     Marked superseded rather than used: same effect, but it lets /join tell
+     the member their code was replaced — which is the difference between
+     "scan the new QR on the screen in front of you" and being sent home. */
   await db
     .from("member_claim_codes")
-    .update({ used_at: new Date().toISOString() })
+    .update({ superseded_at: new Date().toISOString() })
     .eq("gym_id", actor.gymId)
     .eq("member_id", memberId)
-    .is("used_at", null);
+    .is("used_at", null)
+    .is("superseded_at", null);
 
   const { error } = await db.from("member_claim_codes").insert({
     gym_id: actor.gymId,
@@ -77,18 +82,42 @@ export interface ClaimTarget {
   maskedPhone: string;
 }
 
+/**
+ * Why a code did not work, when it did not.
+ *
+ * `superseded` is by far the most common and was the least explicable: it
+ * means reception tapped "New code", so the QR the member is looking at died
+ * while a live one sits on the counter screen.
+ */
+export type ClaimStatus = "ok" | "used" | "superseded" | "expired" | "unknown";
+
+export interface ClaimLookup {
+  status: ClaimStatus;
+  /** Present only for "ok" — a code found on the floor names nobody. */
+  target: ClaimTarget | null;
+}
+
 /** What /join shows before the member has proved anything. */
-export async function lookupClaimCode(code: string): Promise<ClaimTarget | null> {
+export async function lookupClaimCode(code: string): Promise<ClaimLookup> {
   const db = await createServerDb();
-  const { data } = await db.rpc("claim_code_peek", { p_hash: await hashCode(code) });
+  const { data, error } = await db.rpc("claim_code_peek", { p_hash: await hashCode(code) });
 
   const row = (data as unknown as
-    | { full_name: string; gym_name: string; masked_phone: string }[]
+    | { status: ClaimStatus; full_name: string | null; gym_name: string | null; masked_phone: string | null }[]
     | null)?.[0];
 
-  return row
-    ? { fullName: row.full_name, gymName: row.gym_name, maskedPhone: row.masked_phone }
-    : null;
+  /* A failed call is not an expired code. Saying so would send a member to
+     the desk over an outage, and reception has no way to tell the difference
+     from a code that never worked. */
+  if (error || !row) return { status: "unknown", target: null };
+
+  return {
+    status: row.status,
+    target:
+      row.status === "ok" && row.full_name && row.gym_name && row.masked_phone
+        ? { fullName: row.full_name, gymName: row.gym_name, maskedPhone: row.masked_phone }
+        : null,
+  };
 }
 
 export interface ClaimResult {
