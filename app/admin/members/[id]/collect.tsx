@@ -22,11 +22,12 @@ interface Plan {
 }
 
 export function CollectPayment({
-  memberId, plans, currentExpiry,
+  memberId, plans, currentExpiry, gstEnabled,
 }: {
   memberId: string;
   plans: Plan[];
   currentExpiry: string | null;
+  gstEnabled: boolean;
 }) {
   const [planId, setPlanId] = useState(plans[1]?.id ?? plans[0]?.id ?? "");
   const [state, action] = useActionState(
@@ -36,7 +37,7 @@ export function CollectPayment({
 
   const plan = plans.find((p) => p.id === planId);
   const price = Number(plan?.price_paise ?? 0);
-  const split = gstSplit(price);
+  const split = gstSplit(price, { enabled: gstEnabled });
 
   /* Mirrors next_expiry() in SQL: a live membership is extended from its own
      end date; a lapsed one restarts today. Shown, not assumed. */
@@ -101,12 +102,12 @@ export function CollectPayment({
           <dt className="text-neutral-700">{plan?.name} plan</dt>
           <dd className="tabular">{formatINR(split.taxablePaise)}</dd>
         </div>
-        <div className="mt-1.5 flex justify-between">
-          <dt className="text-neutral-700">GST 18%</dt>
-          <dd className="tabular">
-            {formatINR(split.cgstPaise + split.sgstPaise + split.igstPaise)}
-          </dd>
-        </div>
+        {split.taxPaise > 0 && (
+          <div className="mt-1.5 flex justify-between">
+            <dt className="text-neutral-700">GST 18%</dt>
+            <dd className="tabular">{formatINR(split.taxPaise)}</dd>
+          </div>
+        )}
         <div className="mt-2.5 flex justify-between border-t border-neutral-300 pt-2.5">
           <dt className="font-semibold">Total</dt>
           <dd className="tabular text-[16px] font-bold">{formatINR(split.totalPaise)}</dd>

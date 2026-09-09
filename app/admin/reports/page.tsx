@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { gstEnabled } from "@/lib/tax";
 import { BarChart } from "@/components/ui/chart";
 import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell";
 import { formatINR, formatINRCompact, formatDate } from "@/lib/money";
@@ -43,8 +44,9 @@ export default async function ReportsPage({
   const params = await searchParams;
   const months = [3, 6, 12].includes(Number(params.months)) ? Number(params.months) : 6;
 
-  const [{ data: summary }] = await Promise.all([
+  const [{ data: summary }, gst] = await Promise.all([
     db.rpc("reports_summary", { p_gym_id: actor.gymId, p_months: months }),
+    gstEnabled(),
   ]);
 
   const s = summary as unknown as Summary | null;
@@ -84,7 +86,7 @@ export default async function ReportsPage({
       <PageHeader
         eyebrow="Reports"
         title="How the gym is doing"
-        sub={`Since ${formatDate(s.from)}. Amounts exclude GST.`}
+        sub={`Since ${formatDate(s.from)}.${gst ? " Amounts exclude GST." : ""}`}
         actions={
           <div className="flex gap-1 rounded-pill bg-neutral-200 p-1">
             {[3, 6, 12].map((m) => (

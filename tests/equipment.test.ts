@@ -56,7 +56,7 @@ describe("the equipment inventory", () => {
     ).rejects.toThrow();
   });
 
-  it("lets owner and manager write, trainer and reception only read", async () => {
+  it("lets owner, manager and trainer write, reception only read", async () => {
     await db.as(
       actor(gymA, "manager"),
       `insert into equipment (gym_id, name, category) values ($1, 'Smith machine', 'machine')`,
@@ -69,10 +69,21 @@ describe("the equipment inventory", () => {
     );
     expect(seen).toHaveLength(1);
 
+    /* A trainer may add kit as of 0006_trainer_equipment: they already owned
+       the exercise library, an exercise points at an equipment row, and they
+       are the people on the floor when new kit arrives. */
+    await db.as(
+      actor(gymA, "trainer"),
+      `insert into equipment (gym_id, name, category) values ($1, 'Rogue rack', 'bench_rack')`,
+      [gymA.gymId],
+    );
+
+    /* Reception still cannot, which is what keeps this a real boundary rather
+       than an open table. */
     await expect(
       db.as(
-        actor(gymA, "trainer"),
-        `insert into equipment (gym_id, name, category) values ($1, 'Rogue rack', 'bench_rack')`,
+        actor(gymA, "receptionist"),
+        `insert into equipment (gym_id, name, category) values ($1, 'Concept2', 'cardio')`,
         [gymA.gymId],
       ),
     ).rejects.toThrow();

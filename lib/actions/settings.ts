@@ -25,6 +25,10 @@ import type { ActionResult } from "./members";
    with their accountant, discovered months later. */
 const GSTIN = /^\d{2}[A-Z]{5}\d{4}[A-Z]\d[A-Z][0-9A-Z]$/;
 
+/* Absent when unticked — HTML posts nothing for an unchecked box. Same shape
+   as the plan editor's toggles. */
+const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z.boolean());
+
 const Settings = z.object({
   name: z.string().trim().min(2, "The gym needs a name"),
   address: z.string().trim().optional(),
@@ -33,6 +37,7 @@ const Settings = z.object({
   gstin: z
     .union([z.string().trim().toUpperCase().regex(GSTIN, "That is not a valid GSTIN"), z.literal("")])
     .optional(),
+  gst_enabled: checkbox,
   reminder_hour: z.coerce.number().int().min(0).max(23),
 });
 
@@ -60,6 +65,7 @@ export async function saveGymSettings(
       phone: v.phone || null,
       email: v.email || null,
       gstin: v.gstin || null,
+      gst_enabled: v.gst_enabled,
       reminder_hour: v.reminder_hour,
       updated_at: new Date().toISOString(),
     })
@@ -69,5 +75,9 @@ export async function saveGymSettings(
 
   revalidatePath("/admin/settings");
   revalidatePath("/admin");
+  /* Turning tax off changes the price on every screen that quotes one, and
+     those are cached separately from this page. */
+  revalidatePath("/admin/plans");
+  revalidatePath("/m/membership");
   return { ok: true, message: "Saved." };
 }

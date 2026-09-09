@@ -207,8 +207,8 @@ function ClaimCard({ claim, plans }: { claim: PendingClaim; plans: Plan[] }) {
 
           <p className="mt-2 text-[11.5px] text-neutral-600">
             Approving records {formatINR(willRecord)}, adds{" "}
-            {plan?.duration_days ?? 0} days to the membership and issues a GST
-            invoice. None of that undoes cleanly.
+            {plan?.duration_days ?? 0} days to the membership and issues a
+            numbered invoice. None of that undoes cleanly.
           </p>
 
           {note && (

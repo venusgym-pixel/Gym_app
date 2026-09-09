@@ -42,11 +42,15 @@ const PRESETS = [
 
 export function PlanEditor({
   plan,
+  gstEnabled,
   liveCount,
   soldCount,
   onDone,
 }: {
   plan: PlanRow | null;
+  /** Off for a gym below the registration threshold: the number typed here is
+   *  then the whole price, so the label and the preview both have to change. */
+  gstEnabled: boolean;
   /** On this plan right now — drives the "changing the price" warning. */
   liveCount: number;
   /** Ever sold on this plan, expired included. Deleting is blocked by any of
@@ -63,7 +67,9 @@ export function PlanEditor({
 
   const rupees = Number(price);
   const preview =
-    Number.isFinite(rupees) && rupees > 0 ? gstSplit(Math.round(rupees * 100)) : null;
+    Number.isFinite(rupees) && rupees > 0
+      ? gstSplit(Math.round(rupees * 100), { enabled: gstEnabled })
+      : null;
   const perMonth =
     preview && Number(days) > 0
       ? Math.round((rupees * 100) / (Number(days) / 30))
@@ -118,7 +124,11 @@ export function PlanEditor({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Price, excluding GST" required hint="Whole rupees.">
+        <Field
+          label={gstEnabled ? "Price, excluding GST" : "Price"}
+          required
+          hint={gstEnabled ? "Whole rupees." : "Whole rupees. What the member pays."}
+        >
           <Input
             name="price_rupees"
             type="number" inputMode="numeric"
@@ -131,12 +141,14 @@ export function PlanEditor({
           />
           {preview && (
             <div className="mt-1.5 rounded-md bg-bg px-3 py-2 text-[11.5px] text-neutral-700">
-              <div className="flex justify-between">
-                <span>Member pays with 18% GST</span>
-                <span className="tabular font-semibold text-ink">
-                  {formatINR(preview.totalPaise)}
-                </span>
-              </div>
+              {gstEnabled && (
+                <div className="flex justify-between">
+                  <span>Member pays with 18% GST</span>
+                  <span className="tabular font-semibold text-ink">
+                    {formatINR(preview.totalPaise)}
+                  </span>
+                </div>
+              )}
               {perMonth && (
                 <div className="mt-0.5 flex justify-between">
                   <span>Works out at</span>

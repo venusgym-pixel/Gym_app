@@ -69,6 +69,10 @@ export default async function InvoicePage({
   const tax =
     Number(inv.cgst_paise) + Number(inv.sgst_paise) + Number(inv.igst_paise);
   const interState = Number(inv.igst_paise) > 0;
+  /* Read from the invoice, never from the gym's setting today. A gym that
+     registers next year must not turn last year's bills of supply into tax
+     invoices, and one that de-registers must not un-charge tax it collected. */
+  const taxed = tax > 0;
 
   return (
     <>
@@ -95,16 +99,21 @@ export default async function InvoicePage({
             {g?.phone && <p className="text-[12px] text-neutral-700">{g.phone}</p>}
             {inv.gym_gstin ? (
               <p className="mt-1.5 font-mono text-[11.5px]">GSTIN {inv.gym_gstin}</p>
-            ) : (
+            ) : taxed ? (
               <p className="mt-1.5 rounded-sm bg-accent-200 px-2 py-0.5 text-[11px] text-accent-800 print:hidden">
                 No GSTIN on file — add one in Settings before issuing real invoices.
               </p>
-            )}
+            ) : null}
           </div>
 
           <div className="text-right">
             <p className="font-mono text-[11px] tracking-[0.1em] text-neutral-600 uppercase">
-              {inv.is_credit_note ? "Credit note" : "Tax invoice"}
+              {inv.is_credit_note
+                ? "Credit note"
+                /* An unregistered supplier issues a bill of supply, not a tax
+                   invoice. Same document, and the wrong word on it is the
+                   first thing an auditor picks up. */
+                : taxed ? "Tax invoice" : "Bill of supply"}
             </p>
             <p className="mt-1 font-mono text-[15px] font-bold">{inv.invoice_no}</p>
             <p className="mt-1 text-[12px] text-neutral-700">
@@ -174,15 +183,19 @@ export default async function InvoicePage({
 
         <div className="mt-4 flex justify-end">
           <dl className="w-full max-w-[280px] space-y-1.5 text-[13px]">
-            <Row label="Taxable value" value={formatINRExact(inv.taxable_paise)} />
-            {interState ? (
-              <Row label="IGST 18%" value={formatINRExact(inv.igst_paise)} />
-            ) : (
-              <>
-                <Row label="CGST 9%" value={formatINRExact(inv.cgst_paise)} />
-                <Row label="SGST 9%" value={formatINRExact(inv.sgst_paise)} />
-              </>
-            )}
+            <Row
+              label={taxed ? "Taxable value" : "Value"}
+              value={formatINRExact(inv.taxable_paise)}
+            />
+            {taxed &&
+              (interState ? (
+                <Row label="IGST 18%" value={formatINRExact(inv.igst_paise)} />
+              ) : (
+                <>
+                  <Row label="CGST 9%" value={formatINRExact(inv.cgst_paise)} />
+                  <Row label="SGST 9%" value={formatINRExact(inv.sgst_paise)} />
+                </>
+              ))}
             <div className="flex justify-between border-t border-neutral-300 pt-2 text-[16px] font-bold">
               <dt>Total</dt>
               <dd className="tabular">{formatINRExact(inv.total_paise)}</dd>
@@ -192,9 +205,18 @@ export default async function InvoicePage({
 
         <footer className="mt-8 border-t border-neutral-300 pt-4 text-[11px] text-neutral-600">
           <p>
-            Tax of {formatINRExact(tax)} charged at 18% on{" "}
-            {interState ? "inter-state" : "intra-state"} supply of services under SAC{" "}
-            {inv.sac_code || SAC_FITNESS}.
+            {taxed ? (
+              <>
+                Tax of {formatINRExact(tax)} charged at 18% on{" "}
+                {interState ? "inter-state" : "intra-state"} supply of services under SAC{" "}
+                {inv.sac_code || SAC_FITNESS}.
+              </>
+            ) : (
+              <>
+                No GST charged on this supply of services under SAC{" "}
+                {inv.sac_code || SAC_FITNESS}.
+              </>
+            )}
           </p>
           <p className="mt-1">
             Computer-generated invoice. Valid without signature.

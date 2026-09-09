@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { saveGymSettings } from "@/lib/actions/settings";
 import { Feedback, Field, Input, Select, Submit } from "@/components/admin/forms";
 
@@ -16,10 +16,15 @@ export function GymSettingsForm({
     phone: string | null;
     email: string | null;
     gstin: string | null;
+    gst_enabled: boolean;
     reminder_hour: number;
   };
 }) {
   const [state, action] = useActionState(saveGymSettings, null);
+  /* The only controlled field here, because the GSTIN below it stops being
+     relevant the moment this is unticked and saying so in place beats leaving
+     a field that now does nothing. */
+  const [gst, setGst] = useState(gym.gst_enabled);
 
   return (
     <form action={action} className="space-y-4">
@@ -40,18 +45,53 @@ export function GymSettingsForm({
         </Field>
       </div>
 
-      <Field
-        label="GSTIN"
-        hint="Invoices carry a non-compliance warning until this is set. 15 characters, e.g. 29ABCDE1234F1Z5."
-      >
-        <Input
-          name="gstin"
-          defaultValue={gym.gstin ?? ""}
-          maxLength={15}
-          className="font-mono uppercase"
-          placeholder="29ABCDE1234F1Z5"
-        />
-      </Field>
+      <fieldset className="rounded-lg border border-neutral-200 p-4">
+        <legend className="px-1 text-[12px] font-semibold text-neutral-700">Tax</legend>
+
+        <label className="flex items-start gap-2.5">
+          <input
+            type="checkbox"
+            name="gst_enabled"
+            checked={gst}
+            onChange={(e) => setGst(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span>
+            <span className="block text-[13px] font-medium">Charge GST on memberships</span>
+            <span className="block text-[11.5px] text-neutral-600">
+              18% is added to every plan price at the desk, in the member app and
+              on the invoice. Turn it off if the gym is not registered for GST —
+              registration is only compulsory above ₹20 lakh of turnover, and
+              collecting the tax without a GSTIN is not allowed.
+            </span>
+          </span>
+        </label>
+
+        <p className="mt-3 text-[11.5px] text-neutral-600">
+          {gst
+            ? "Plan prices are entered without tax; members are quoted the price with tax."
+            : "Plan prices are the final price. Invoices are still numbered and issued, with no tax lines on them."}
+        </p>
+
+        <div className="mt-4">
+          <Field
+            label="GSTIN"
+            hint={
+              gst
+                ? "Invoices carry a non-compliance warning until this is set. 15 characters, e.g. 29ABCDE1234F1Z5."
+                : "Not needed while GST is off. Kept in case the gym registers later."
+            }
+          >
+            <Input
+              name="gstin"
+              defaultValue={gym.gstin ?? ""}
+              maxLength={15}
+              className="font-mono uppercase"
+              placeholder="29ABCDE1234F1Z5"
+            />
+          </Field>
+        </div>
+      </fieldset>
 
       <Field
         label="Reminder hour"

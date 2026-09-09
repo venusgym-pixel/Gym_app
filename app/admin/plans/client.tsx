@@ -19,7 +19,12 @@ export interface PlanWithCounts extends PlanRow {
   soldCount: number;
 }
 
-export function PlansManager({ plans }: { plans: PlanWithCounts[] }) {
+export function PlansManager({
+  plans, gstEnabled,
+}: {
+  plans: PlanWithCounts[];
+  gstEnabled: boolean;
+}) {
   const router = useRouter();
   /* null = closed, "new" = creating, otherwise the id being edited. */
   const [open, setOpen] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export function PlansManager({ plans }: { plans: PlanWithCounts[] }) {
             <PlanEditor
               key={editing?.id ?? "new"}
               plan={editing}
+              gstEnabled={gstEnabled}
               liveCount={editing?.liveCount ?? 0}
               soldCount={editing?.soldCount ?? 0}
               onDone={done}
@@ -65,7 +71,7 @@ export function PlansManager({ plans }: { plans: PlanWithCounts[] }) {
       ) : (
         <div className="grid gap-3 md:grid-cols-3">
           {plans.map((p) => {
-            const split = gstSplit(Number(p.price_paise));
+            const split = gstSplit(Number(p.price_paise), { enabled: gstEnabled });
             const perMonth = Math.round(Number(p.price_paise) / (p.duration_days / 30));
             return (
               <Card key={p.id}>
@@ -82,7 +88,9 @@ export function PlansManager({ plans }: { plans: PlanWithCounts[] }) {
 
                 <dl className="mt-3 space-y-1 text-[12.5px] text-neutral-700">
                   <Line label="Duration" value={`${p.duration_days} days`} />
-                  <Line label="With GST" value={formatINR(split.totalPaise)} />
+                  {gstEnabled && (
+                    <Line label="With GST" value={formatINR(split.totalPaise)} />
+                  )}
                   <Line label="Effective / month" value={formatINR(perMonth)} />
                   {p.joining_fee_paise !== "0" && Number(p.joining_fee_paise) > 0 && (
                     <Line label="Joining fee" value={formatINR(p.joining_fee_paise)} />

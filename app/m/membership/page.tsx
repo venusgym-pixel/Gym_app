@@ -70,7 +70,7 @@ export default async function MembershipPage() {
       : Promise.resolve({ data: [] }),
     db
       .from("gyms")
-      .select("name, upi_qr_path, upi_vpa, payment_link")
+      .select("name, upi_qr_path, upi_vpa, payment_link, gst_enabled")
       .eq("id", actor.gymId)
       .maybeSingle(),
     /* A claim already in the queue. Without this the member can send a
@@ -90,8 +90,11 @@ export default async function MembershipPage() {
 
   const gymPay = gymRow as {
     name: string; upi_qr_path: string | null; upi_vpa: string | null;
-    payment_link: string | null;
+    payment_link: string | null; gst_enabled: boolean;
   } | null;
+  /* Registered unless the gym says otherwise — same default as the desk, so
+     the two screens can never quote different prices for the same plan. */
+  const gst = gymPay?.gst_enabled ?? true;
   /* The QR lives in a PUBLIC bucket, unlike payment proofs: it is the same
      code taped to the counter, and a signed URL would expire while the
      member is still in their UPI app. */
@@ -160,13 +163,15 @@ export default async function MembershipPage() {
         <h2 className="mt-8 text-[0.724em] tracking-[0.08em] text-app-good uppercase">
           {current ? "Renew" : "Choose a plan"}
         </h2>
-        <p className="mt-1.5 text-[0.822em]" style={{ color: "var(--app-ink-50)" }}>
-          Prices include 18% GST.
-        </p>
+        {gst && (
+          <p className="mt-1.5 text-[0.822em]" style={{ color: "var(--app-ink-50)" }}>
+            Prices include 18% GST.
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col gap-3">
           {((plans ?? []) as Plan[]).map((p) => {
-            const split = gstSplit(Number(p.price_paise));
+            const split = gstSplit(Number(p.price_paise), { enabled: gst });
             const until = new Date(base.getTime() + p.duration_days * 86_400_000);
             return (
               <div

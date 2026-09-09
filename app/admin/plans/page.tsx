@@ -1,4 +1,5 @@
 import { createServerDb, requireActor } from "@/lib/db/server";
+import { gstEnabled } from "@/lib/tax";
 import { PageHeader } from "@/components/admin/shell";
 import { PlansManager, type PlanWithCounts } from "./client";
 
@@ -22,9 +23,10 @@ export default async function PlansPage() {
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: plans }, { data: counts }] = await Promise.all([
+  const [{ data: plans }, { data: counts }, gst] = await Promise.all([
     db.from("plans").select("*").eq("gym_id", actor.gymId).order("sort_order"),
     db.from("memberships").select("plan_id, status").eq("gym_id", actor.gymId),
+    gstEnabled(),
   ]);
 
   /* Two different numbers, for two different decisions. `live` is who is on a
@@ -52,9 +54,13 @@ export default async function PlansPage() {
       <PageHeader
         eyebrow="Memberships"
         title="Plans"
-        sub="Prices exclude GST; 18% is added at checkout."
+        sub={
+          gst
+            ? "Prices exclude GST; 18% is added at checkout."
+            : "Prices are what the member pays. GST is off in Settings."
+        }
       />
-      <PlansManager plans={rows} />
+      <PlansManager plans={rows} gstEnabled={gst} />
     </>
   );
 }

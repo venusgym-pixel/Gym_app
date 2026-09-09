@@ -45,6 +45,9 @@ export interface GstSplit {
   cgstPaise: number;
   sgstPaise: number;
   igstPaise: number;
+  /** The three above added up. Zero when the gym is not registered — which is
+   *  what every screen tests to decide whether a tax line belongs on it. */
+  taxPaise: number;
   totalPaise: number;
 }
 
@@ -61,9 +64,13 @@ export interface GstSplit {
  */
 export function gstSplit(
   taxablePaise: number,
-  { rate = GST_RATE, interState = false } = {},
+  { rate = GST_RATE, interState = false, enabled = true } = {},
 ): GstSplit {
-  const tax = Math.round(taxablePaise * rate);
+  /* A gym below the ₹20 lakh registration threshold has no GSTIN and may not
+     collect the tax at all, so `enabled: false` is not a display preference —
+     it is the rate being zero. Mirrored in issue_invoice(), which reads the
+     gym's own flag rather than trusting the rate it was passed. */
+  const tax = enabled ? Math.round(taxablePaise * rate) : 0;
   const half = Math.floor(tax / 2);
 
   return {
@@ -71,6 +78,7 @@ export function gstSplit(
     cgstPaise: interState ? 0 : half,
     sgstPaise: interState ? 0 : tax - half,
     igstPaise: interState ? tax : 0,
+    taxPaise: tax,
     totalPaise: taxablePaise + tax,
   };
 }

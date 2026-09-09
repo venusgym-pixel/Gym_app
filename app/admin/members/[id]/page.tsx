@@ -7,6 +7,7 @@ import { Card, EmptyState, PageHeader, StatTile } from "@/components/admin/shell
 import { StatusChip } from "@/components/ui/status-chip";
 import { formatDate, formatINR } from "@/lib/money";
 import { CheckInButton, CollectPayment } from "./collect";
+import { gstEnabled } from "@/lib/tax";
 import { TrainerCard } from "./trainer";
 import type {
   MembershipStatus } from "@/lib/db/database.types";
@@ -40,7 +41,7 @@ export default async function MemberProfile({
   const actor = await requireActor();
   const db = await createServerDb();
 
-  const [{ data: member }, { data: plans }, { data: staff }, { data: coach }] =
+  const [{ data: member }, { data: plans }, { data: staff }, { data: coach }, gst] =
     await Promise.all([
     db.from("members")
       .select(`id, member_code, full_name, phone, email, date_of_birth, gender,
@@ -62,6 +63,8 @@ export default async function MemberProfile({
       .select("trainer_id, profiles(full_name)")
       .eq("gym_id", actor.gymId).eq("member_id", id).is("ended_on", null)
       .maybeSingle(),
+
+    gstEnabled(),
   ]);
 
   if (!member) notFound();
@@ -137,6 +140,7 @@ export default async function MemberProfile({
             memberId={m.id}
             plans={(plans ?? []) as { id: string; name: string; duration_days: number; price_paise: string }[]}
             currentExpiry={current?.expires_on ?? null}
+            gstEnabled={gst}
           />
         </Card>
 

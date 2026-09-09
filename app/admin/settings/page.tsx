@@ -26,14 +26,14 @@ export default async function SettingsPage() {
 
   const { data: gym } = await db
     .from("gyms")
-    .select("id, name, slug, address, phone, email, gstin, timezone, currency, reminder_hour, upi_qr_path, upi_vpa, payment_link")
+    .select("id, name, slug, address, phone, email, gstin, gst_enabled, timezone, currency, reminder_hour, upi_qr_path, upi_vpa, payment_link")
     .eq("id", actor.gymId)
     .single();
 
   const g = gym as {
     id: string; name: string; slug: string; address: string | null;
     phone: string | null; email: string | null; gstin: string | null;
-    timezone: string; currency: string; reminder_hour: number;
+    gst_enabled: boolean; timezone: string; currency: string; reminder_hour: number;
     upi_qr_path: string | null; upi_vpa: string | null; payment_link: string | null;
   };
 

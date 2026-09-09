@@ -71,6 +71,7 @@ export interface Gym {
   phone: string | null;
   email: string | null;
   gstin: string | null;
+  gst_enabled: boolean;
   currency: string;
   timezone: string;
   reminder_hour: number;

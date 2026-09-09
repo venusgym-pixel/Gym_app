@@ -70,6 +70,24 @@ describe("money", () => {
     expect(s.totalPaise).toBe(39_333);
   });
 
+  it("charges nothing when the gym is not registered for GST", () => {
+    /* Not a display preference: a gym under the ₹20 lakh threshold has no
+       GSTIN and may not collect the tax, so the price the member is quoted has
+       to be the price the plan was entered at. */
+    const s = gstSplit(850_000, { enabled: false });
+    expect(s.taxPaise).toBe(0);
+    expect(s.cgstPaise).toBe(0);
+    expect(s.sgstPaise).toBe(0);
+    expect(s.igstPaise).toBe(0);
+    expect(s.totalPaise).toBe(850_000);          // exactly the taxable value
+    expect(s.totalPaise).toBe(s.taxablePaise);
+  });
+
+  it("reports the tax it charged as one number", () => {
+    expect(gstSplit(850_000).taxPaise).toBe(153_000);
+    expect(gstSplit(850_000, { interState: true }).taxPaise).toBe(153_000);
+  });
+
   it("uses a single IGST line for inter-state supply", () => {
     const s = gstSplit(850_000, { interState: true });
     expect(s.igstPaise).toBe(153_000);

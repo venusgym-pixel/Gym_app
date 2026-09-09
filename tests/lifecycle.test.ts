@@ -368,3 +368,37 @@ describe("check-in never leaks across gyms", () => {
     expect(r.outcome).toBe("none");
   });
 });
+
+describe("a gym that is not registered for GST", () => {
+  it("issues a numbered invoice with no tax on it", async () => {
+    await db.sql(`update gyms set gst_enabled = false where id = $1`, [gym.gymId]);
+
+    const join = await joinAndPay();
+    const [inv] = await db.sql<{
+      invoice_no: string; taxable_paise: string; cgst_paise: string;
+      sgst_paise: string; igst_paise: string; total_paise: string;
+    }>(`select * from invoices where id = $1`, [join.invoice_id]);
+
+    expect(Number(inv.cgst_paise)).toBe(0);
+    expect(Number(inv.sgst_paise)).toBe(0);
+    expect(Number(inv.igst_paise)).toBe(0);
+    // The member pays the plan price and nothing more.
+    expect(Number(inv.total_paise)).toBe(Number(inv.taxable_paise));
+    expect(Number(inv.total_paise)).toBe(850_000);
+    // Still a document the gym has to be able to produce, so it keeps its
+    // place in the gap-free sequence rather than being skipped.
+    expect(inv.invoice_no).toBe("INV/2026-27/0001");
+  });
+
+  it("ignores the rate its callers pass, so no code path can re-add the tax", async () => {
+    await db.sql(`update gyms set gst_enabled = false where id = $1`, [gym.gymId]);
+
+    const [r] = await db.sql<{ issue_invoice: string }>(
+      `select issue_invoice($1, $2, null, null, 850000, 'Direct call', 0.18, false, $3::date)`,
+      [gym.gymId, gym.memberId, JOINED],
+    );
+    const [inv] = await db.sql<{ total_paise: string }>(
+      `select total_paise from invoices where id = $1`, [r.issue_invoice]);
+    expect(Number(inv.total_paise)).toBe(850_000);
+  });
+});
