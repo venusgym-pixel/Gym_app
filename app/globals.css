@@ -491,3 +491,67 @@
   --chart-grid: rgb(249 244 237 / 0.12);
   --chart-surface: #231f19;
 }
+
+/* ── Public landing page (components/site/landing.tsx) ─────────────────────
+   Smooth in-page jumps only on the landing page — the app surfaces scroll
+   programmatically and should not animate. Every motion here switches off
+   under prefers-reduced-motion. */
+html:has(.site) {
+  scroll-behavior: smooth;
+}
+
+/* The landing page's own palette and type: near-black, charcoal surfaces,
+   white ink and an electric-lime accent — the high-contrast look of
+   performance brands. Done by re-pointing the app tokens inside .site, so
+   the component keeps using bg-app-* utilities and the member app is
+   untouched. Unlayered on purpose, so it beats Tailwind's layered
+   utilities for font and tracking on headings. */
+.site {
+  --color-app-bg-deep: #0b0b0c;
+  --color-app-bg: #111113;
+  --color-app-surface: #1c1c1f;
+  --color-app-surface-2: #161618;
+  --color-app-ink: #f5f5f2;
+  --color-app-accent: #d4ff3a;
+  --color-app-accent-ink: #0b0b0c;
+  --color-app-good: #d4ff3a;
+  --color-app-avatar: #2a2a2e;
+  font-family: var(--font-site-body), system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+.site ::selection {
+  background: #d4ff3a;
+  color: #0b0b0c;
+}
+.site :is(h1, h2),
+.site .site-display,
+.site .site-marquee {
+  font-family: var(--font-site-display), var(--font-site-body), sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+.site h1 { line-height: 0.86; }
+.site h2 { line-height: 0.92; }
+.site .site-display { line-height: 1; font-variant-numeric: tabular-nums; }
+.site em { font-style: italic; }
+
+@keyframes site-marquee {
+  to { transform: translateX(-50%); }
+}
+.site-marquee {
+  animation: site-marquee 32s linear infinite;
+}
+
+/* Film grain over the photo placeholders, so the gradients read as a
+   photograph-shaped hole rather than a flat colour block. */
+.site-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.site) { scroll-behavior: auto; }
+  .site-marquee { animation: none; }
+  .site .animate-ping { animation: none; }
+}
